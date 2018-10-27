@@ -8,9 +8,11 @@ import sublime
 import sublime_plugin
 
 from . import vhdl_lang as vhdl
+from . import sv_lang   as sv
 from . import vhdl_util as util
 
 _interface = vhdl.Interface()
+_sv_interface = sv.Interface()
 
 #----------------------------------------------------------------
 class vhdlModeCopyPortsCommand(sublime_plugin.TextCommand):
@@ -89,6 +91,88 @@ class vhdlModeCopyPortsCommand(sublime_plugin.TextCommand):
         # At the very end, move the point back to where we
         # started
         util.set_cursor(self, original_point)
+
+#----------------------------------------------------------------
+class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
+    """
+    The copy ports command requires the user to have placed the
+    point somewhere in the interface to be extracted.  The
+    routine then scans upwards to find a known interface beginning
+    and then down to find the end point.  If a good interface
+    can be determined, then it uses the VHDL language classes to
+    parse the text from the editor and store the structural
+    elements for later pasting in other forms.
+    """
+    def find_start(self, point, interface):
+        # Abstracting the loop for finding the beginning
+        # of the declaration.
+        # Moving point to beginning of line which avoids
+        # checking a line twice due to line lengths.
+        next_point = util.move_to_bol(self, point)
+        while True:
+            check = interface.interface_start(util.line_at_point(self, next_point))
+            if check is None:
+                if util.is_top_line(self, next_point):
+                    print('vhdl-mode: Interface not found.')
+                    return None
+                else:
+                    next_point = util.move_up(self, next_point)
+            else:
+                print('vhdl-mode: Interface beginning found.') 
+                return self.view.text_point(self.view.rowcol(next_point)[0], check)
+
+    def find_end(self, point, interface):
+        # Stepping forward to find the end of the interface.
+        next_point = util.move_to_bol(self, point)
+        while True:
+            check = interface.interface_end(util.line_at_point(self, next_point))
+            if check is None:
+                if util.is_end_line(self, next_point):
+                    print('vhdl-mode: End of interface not found.')
+                    return None
+                else:
+                    next_point = util.move_down(self, next_point)
+            else:
+                print('vhdl-mode: Interface end found.')
+                return self.view.text_point(self.view.rowcol(next_point)[0], check)
+
+    def run(self, edit):
+        global _sv_interface
+
+        print("SV read port")
+
+        # Save the starting point location.  In the case of a
+        # multi-selection, save point A of the first region.
+        # This command does not have any meaning for a multi-
+        # selection.
+        region = self.view.sel()[0]
+        original_point = region.begin()
+
+        # Search for the starting entity string.
+        startpoint = self.find_start(original_point, _sv_interface)
+        if startpoint is None:
+            util.set_cursor(self, original_point)
+            return
+
+        # Search for the endpoint based on the start point.
+        endpoint = self.find_end(startpoint, _sv_interface)
+        if endpoint is None:
+            util.set_cursor(self, original_point)
+            return
+
+        # At this point, we should have a start and end point.  Extract
+        # the string that contains the interface by creating a region
+        # with the points.  At this point, all the processing should be
+        # in the interface class.
+        block = sublime.Region(startpoint, endpoint)
+        _sv_interface.if_string = self.view.substr(block)
+        #print("Module port: " + _sv_interface.if_string)
+        _sv_interface.parse_block()
+
+        # At the very end, move the point back to where we
+        # started
+        util.set_cursor(self, original_point)
+        print("SV read port done")
 
 #----------------------------------------------------------------
 class vhdlModePasteAsSignalCommand(sublime_plugin.TextCommand):
