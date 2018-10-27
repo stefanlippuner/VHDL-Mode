@@ -9,6 +9,7 @@
 """
 import re
 import copy
+import common_lang
 
 _debug = True
 
@@ -23,99 +24,9 @@ def debug(string):
         print(string)
 
 
-# ---------------------------------------------------------------------------
-def left_justify(lines):
-    """
-    Method removes all whitespace at the beginning of a line.
-    """
-    for i in range(len(lines)):
-        lines[i] = re.sub(r"^\s*", '', lines[i])
-
-
 # ---------------------------------------------------------------
-def check_for_comment(line):
+class Parentheses:
     """
-    Simple method that will return False if a line does not
-    begin with a comment, otherwise True.  Mainly used for
-    disabling alignment.
-    """
-    pattern = r'^\s*--'
-    p = re.compile(pattern, re.IGNORECASE)
-    s = re.search(p, line)
-    return bool(s)
-
-
-# ---------------------------------------------------------------
-def strip_comments(line):
-    """
-    Removes any inline comment from the line, accounting for
-    comment symbols inside of a text string.  Does not account
-    for multiline commenting.
-    """
-    str_p = r'".*?"'
-    comment_p = r'\\\\.*$'
-    # First check for an inline string.  Will only handle one.
-    str_s = re.search(str_p, line)
-    # If a string exists, then we break up into searching the
-    # beginning and end separately.  Otherwise, just a basic
-    # whole line search is fine.
-    if str_s:
-        comment_s = re.search(comment_p, line[:str_s.start()])
-        if comment_s:
-            return line[:comment_s.start()]
-        else:
-            comment_s = re.search(comment_p, line[str_s.end():])
-            if comment_s:
-                return line[:str_s.end()+comment_s.start()]
-            else:
-                return line
-    else:
-        comment_s = re.search(comment_p, line)
-        if comment_s:
-            return line[:comment_s.start()]
-        else:
-            return line
-
-# ---------------------------------------------------------------------------
-def pad_vhdl_symbols(lines):
-    """
-    Ensuring that special symbols that later we'll align on have a minimum
-    leading and trailing space.  Aids correct alignment.  Leaving it at
-    assignment and languaage delimeters for now.
-    """
-    for i in range(len(lines)):
-        if not check_for_comment(lines[i]):
-            lines[i] = re.sub(':(?!=)', ' : ',  lines[i])
-            lines[i] = re.sub(':=',     ' := ', lines[i])
-            lines[i] = re.sub('<=',     ' <= ', lines[i])
-            lines[i] = re.sub('=>',     ' => ', lines[i])
-
-
-# ---------------------------------------------------------------------------
-def remove_extra_space(lines):
-    """
-    Method that takes out extra whitespace in a line.  Avoids
-    full line comments and attempts to avoid in-line comments.
-    """
-    for i in range(len(lines)):
-        if not check_for_comment(lines[i]):
-            # Check and save off inline comments.
-            cs = re.search(r'--.*$', lines[i])
-            if cs:
-                comment = lines[i][cs.start():]
-                code = lines[i][0:cs.start()]
-            else:
-                comment = ''
-                code = lines[i]
-            # Compress space in code portion of the line.
-            code = re.sub(r'\s+', ' ', code)
-            code = re.sub(r'\t', ' ', code)
-            lines[i] = code + comment
-
-
-# ---------------------------------------------------------------
-class Parentheses():
-    '''
     An object whose purpose is to keep track of parenthesis counts
     and provide helper functions while traversing a text file.
 
@@ -127,7 +38,7 @@ class Parentheses():
 
     open_pos and close_pos represent the character position of the UNMATCHED
     open and closing parentheses in the last scanned string.
-    '''
+    """
     def __init__(self, counts=[0, 0]):
         self.open_cnt = counts[0]
         self.close_cnt = counts[1]
@@ -177,8 +88,8 @@ class Parentheses():
             self.close_cnt, self.open_pos, self.close_pos)
 
     def extract(self, line):
-        '''Given a string, extracts the contents of the next parenthetical
-        grouping (including interior parenthetical groups.)'''
+        """Given a string, extracts the contents of the next parenthetical
+        grouping (including interior parenthetical groups.)"""
         start = 0
         end = 0
         pcount = 0
@@ -192,7 +103,7 @@ class Parentheses():
             if line[i] == ')' and pcount > 1:
                 pcount -= 1
             elif line[i] == ')' and pcount == 1:
-                end = i - 1
+                end = i
                 pcount -= 1
                 break
         if start >= end:
@@ -321,69 +232,68 @@ def align_block_on_re(lines, regexp, padside='pre', ignore_comment_lines=True, s
 
 
 # ---------------------------------------------------------------
-class Port():
+class SvPort:
     """
     This is the class of ports and ways to manipulate ports.
     A port consists of a name (string), a mode (optional) (string),
     and a type (string).
     """
-    def __init__(self, port_str):
-        self.name = ""
-        self.mode = ""  # the direction of the port
-        self.type = ""
-        self.success = False
-        self.parse_str(port_str)
 
-    def parse_str(self, port_str):
+    @staticmethod
+    def parse_str(port_str: str):
         """Searches a string for the port fields."""
+        data = common_lang.Port()
 
         # In a first step, we look for the (optional) port direction
         dir_pattern = r'(?P<dir>input|output|inout?)\s+'
         s_dir = re.search(re.compile(dir_pattern, re.IGNORECASE), port_str)
         if s_dir:
-            self.mode = s_dir.group('dir')
+            data.mode = s_dir.group('dir')
 
             # remove the port direction and any trailing whitespace
             port_str = re.sub(dir_pattern, '', port_str)
         else:
-            self.mode = 'inout'
+            data.mode = 'inout'
 
         type_pattern = r'(?P<type>.*?)\s+(?P<name>\S*)$'
         pp = re.compile(type_pattern, re.IGNORECASE)
         s = re.search(pp, port_str)
 
         if s:
-            self.name = s.group('name')
-            self.type = s.group('type')
-            self.success = True
+            data.name = s.group('name')
+            data.type = s.group('type')
+            data.success = True
         else:
-            self.type = 'wire'
+            data.type = 'wire'
 
             if len(port_str) >= 1:
-                self.name = port_str
-                self.success = True
+                data.name = port_str
+                data.success = True
             else:
-                self.success = False
+                data.success = False
 
-        if self.success:
-            print('port name: ' + self.name + ", mode: " + self.mode + ", type: " + self.type)
+        if data.success:
+            print('port name: ' + data.name + ", mode: " + data.mode + ", type: " + data.type)
         else:
             print('vhdl-mode: Could not parse port string: ' + port_str + '.')
 
+        return data
 
-    def print_as_signal(self):
+    @staticmethod
+    def print_as_signal(data: common_lang.Port):
         """Returns a string with the port formatted for a signal."""
         # Trailing semicolon provided by calling routine.
-        line = 'signal {} : {}'.format(self.name, self.type)
-        #print(line)
+        line = 'signal {} : {}'.format(data.name, data.type)
+        # print(line)
         return line
 
-    def print_as_portmap(self):
+    @staticmethod
+    def print_as_portmap(data: common_lang.Port):
         """Returns a string with the port formatted as a portmap."""
         # A port name might be a comma separated list which
         # needs to be split into several lines.
         # Remove any spaces.
-        compact = re.sub(r'\s', '', self.name)
+        compact = re.sub(r'\s', '', data.name)
         # Split at commas
         names = compact.split(',')
         lines = []
@@ -393,11 +303,12 @@ class Port():
         # it returns a list instead of a string.
         return lines
 
-    def print_as_port(self):
+    @staticmethod
+    def print_as_port(data: common_lang.Port):
         """Returns a string with the port formatted as a port."""
         # Trailing semicolon provided by calling routine.
-        line = '{} : {} {}'.format(self.name, self.mode, self.type)
-        #print(line)
+        line = '{} : {} {}'.format(data.name, data.mode, data.type)
+        # print(line)
         return line
 
 
@@ -459,7 +370,7 @@ class ModuleParameter():
         return line
 
     def print_as_constant(self):
-        '''Returns a string with the generic interface as a constant.'''
+        """Returns a string with the generic interface as a constant."""
         # So... generic doesn't necessarily have to have a default value
         # even though it should.  So this requires a little detective work
         # to know whether to include the whole line or add in the necessary
@@ -475,7 +386,7 @@ class ModuleParameter():
 class Parameter():
     """
     This is the class of subprogram parameters.  Might ultimately
-    replace even Port and ModuleParameter as the pattern has improved
+    replace even SvPort and ModuleParameter as the pattern has improved
     since starting the package.
     """
     def __init__(self, param_str):
@@ -631,7 +542,7 @@ class SVInterface():
 
         if port_search:
             port_str = Parentheses().extract(if_string[port_search.start():])
-            # debug("Port str: " + port_str)
+            # debug("VhdlPort str: " + port_str)
 
         # Now parse the two strings and make them into lists
 
@@ -649,7 +560,7 @@ class SVInterface():
         if port_search and port_str is not None:
             port_list = port_str.split(',')
             for item in port_list:            
-                port = Port(item)
+                port = SvPort.parse_str(item)
                 if port.success:
                     self.if_ports.append(port)
         else:
@@ -682,10 +593,10 @@ class SVInterface():
             return None
 
     def constants(self):
-        '''
+        """
         This method returns the generic portion of the interface
         listed as constants.
-        '''
+        """
         lines = []
         if self.if_parameters:
             for generic in self.if_parameters:
@@ -828,11 +739,11 @@ class SVInterface():
         return '\n'.join(lines)
 
     def flatten(self):
-        '''
+        """
         Iterates over the generics and ports and if there
         is a line with multiple token names on the same line, will
         make copies of that port with the individual token names.
-        '''
+        """
         if self.if_parameters:
             new_generics = []
             for generic in self.if_parameters:
@@ -859,277 +770,16 @@ class SVInterface():
             self.if_ports = new_ports
 
     def reverse(self):
-        '''
+        """
         Iterates over the ports and flips the direction/mode.
         in becomes out
         out and buffer become in
         inout is unchanged.
-        '''
+        """
         if self.if_ports:
             for port in self.if_ports:
                 if port.mode.lower() == 'in':
                     port.mode = 'out'
                 elif port.mode.lower() == 'out' or port.mode.lower() == 'buffer':
                     port.mode = 'in'
-
-
-# ---------------------------------------------------------------
-class Subprogram():
-    """
-    Class that contains information about a VHDL subprogram
-    declaration and methods to enable rewriting it in some
-    fashion.
-    """
-    def __init__(self):
-        self.name = ""
-        self.type = ""
-        self.purity = ""
-        self.if_string = ""
-        self.if_params = []
-        self.if_parameters = []
-        self.if_return = ""
-        self.paren_count = [0, 0]
-
-    def reset(self):
-        """Subprograms need a reset simply because there's a lot of
-        optional things that change from copy to copy.  In the
-        entity/component world, it's a lot more uniform."""
-        self.name = ""
-        self.type = ""
-        self.purity = ""
-        self.if_string = ""
-        self.if_params = []
-        self.if_parameters = []
-        self.if_return = ""
-        self.paren_count = [0, 0]
-
-    def subprogram_start(self, line):
-        """Attempts to identify the start of a subprogram specification."""
-        # Resetting the paren count here in case we end up calling this
-        # entire command multiple times.  Finding the end depends on it.
-        self.paren_count = [0, 0]
-        head_pattern = r"((?P<purity>impure|pure)\s+)?(?P<type>procedure|function)\s+(?P<name>\w*)"
-        s = re.search(head_pattern, line, re.I)
-        if s:
-            if s.group('purity'):
-                self.purity = s.group('purity')
-            self.type = s.group('type')
-            self.name = s.group('name')
-            return s.start()
-        else:
-            return None
-
-    def subprogram_end(self, line):
-        """Attempts to identify the end of the subprogram specification.
-        This is somewhat trickier than finding the end of an entity or
-        component simply because there's no end clause.  A procedure
-        specification block ends on a semicolon in the case of the
-        prototype, and ends on 'is' in the case of a declaration.
-        A function ends on return <type>; or return <type> is.  Due to
-        the procedure semicolon ending (which will get also used in the
-        parameters) we have to match and count parens and only validate
-        a tail when all parens are balanced."""
-        # Patterns to check.
-        proc_tail_pattern = r";|is"
-        func_tail_pattern = r"return\s+(?P<rtype>.*?)\s*(;|is)"
-
-        # Find our parenthesis state.
-        parens = Parentheses()
-        parens.scan(line)
-
-        # If we are unbalanced, then there's nothing to do and return.  Otherwise
-        # use the last paren location to trim the line and perform the search.
-        if parens.balanced:
-            if close_pos:
-                new_line = line[parens.close_pos[-1]:]
-                offset = close_pos[-1]
-            else:
-                new_line = line
-                offset = 0
-
-            if self.type.lower() == 'function':
-                s = re.search(func_tail_pattern, new_line, re.I)
-                if s:
-                    self.if_return = s.group('rtype')
-                    return s.end() + offset
-                else:
-                    return None
-            elif self.type.lower() == 'procedure':
-                s = re.search(proc_tail_pattern, new_line, re.I)
-                if s:
-                    return s.end() + offset
-                else:
-                    return None
-            else:
-                return None
-        else:
-            return None
-
-    def parse_block(self):
-        """Chops up the string and extracts the internal declarations."""
-        # Remove comments, newlines, and compress spaces.
-        self.if_string = re.sub(r'--.*?(\n|$)', r'\n', self.if_string)
-        self.if_string = re.sub(r'\n', r'', self.if_string)
-        self.if_string = re.sub(r'\s+', r' ', self.if_string)
-        # Strip return clause if a function.
-        if self.type == 'function':
-            func_tail_pattern = r"return\s+(?P<rtype>.*?)\s*(;|is)"
-            s = re.search(func_tail_pattern, self.if_string, re.I)
-            self.if_string = self.if_string[:s.start()]
-        # Extract parameter block.
-        start, stop = None, None
-        for i in range(len(self.if_string)):
-            if self.if_string[i] == '(' and not start:
-                start = i+1
-            if self.if_string[-i] == ')' and not stop:
-                stop = -i
-            if start and stop:
-                break
-        if start and stop:
-            self.if_string = self.if_string[start:stop]
-            #print(self.if_string)
-            param_list = self.if_string.split(';')
-            for param_str in param_list:
-                param = Parameter(param_str)
-                if param.success:
-                    self.if_params.append(param)
-                    #param.print()
-        else:
-            print('vhdl-mode: No subprogram parameters found.')
-
-    def print(self):
-        """For debug"""
-        print('Purity: {}'.format(self.purity))
-        print('SP Type: {}'.format(self.type))
-        print('SP Name: {}'.format(self.name))
-        print('Params: {}'.format(self.if_params))
-        print('Return: {}'.format(self.if_return))
-
-    def declaration(self):
-        """Constructs a subprogram declaration from the currently
-        copied subprogram.  Again there are many optional things
-        so construction is piece by piece.  Going to format in
-        K&R style. """
-        lines = []
-        if self.type == 'function':
-            if self.if_params:
-                if self.purity:
-                    lines.append('{} {} {} ('.format(self.purity, self.type, self.name))
-                else:
-                    lines.append('{} {} ('.format(self.type, self.name))
-                param_strings = []
-                for param in self.if_params:
-                    param_strings.append(param.print_formal())
-                param_strings = ';^'.join(param_strings).split('^')
-                for param_str in param_strings:
-                    lines.append(param_str)
-                lines.append(') return {};'.format(self.if_return))
-            else:
-                if self.purity:
-                    lines.append('{} {} {} return {};'.format(self.purity, self.type, self.name, self.rtype))
-                else:
-                    lines.append('{} {} return {};'.format(self.type, self.name, self.if_return))
-        else: # Procedure
-            if self.if_params:
-                lines.append('{} {} ('.format(self.type, self.name))
-                param_strings = []
-                for param in self.if_params:
-
-                    param_strings.append(param.print_formal())
-                param_strings = ';^'.join(param_strings).split('^')
-                for param_str in param_strings:
-                    lines.append(param_str)
-                lines.append(');')
-            else:
-                lines.append('{} {};'.format(self.type, self.name))
-
-        align_block_on_re(lines, ':')
-        align_block_on_re(lines, r':\s?(?:in\b|out\b|inout\b|buffer\b)?\s*', 'post')
-        align_block_on_re(lines, ':=')
-        indent_vhdl(lines, 1)
-
-        return '\n'.join(lines)
-
-    def body(self):
-        """Constructs a subprogram body from the currently
-        copied subprogram.  Again there are many optional things
-        so construction is piece by piece.  Going to format in
-        K&R style. """
-        lines = []
-        if self.type == 'function':
-            if self.if_params:
-                if self.purity:
-                    lines.append('{} {} {} ('.format(self.purity, self.type, self.name))
-                else:
-                    lines.append('{} {} ('.format(self.type, self.name))
-                param_strings = []
-                for param in self.if_params:
-                    param_strings.append(param.print_formal())
-                param_strings = ';^'.join(param_strings).split('^')
-                for param_str in param_strings:
-                    lines.append(param_str)
-                lines.append(') return {} is'.format(self.if_return))
-            else:
-                if self.purity:
-                    lines.append('{} {} {} return {} is'.format(self.purity, self.type, self.name, self.rtype))
-                else:
-                    lines.append('{} {} return {} is'.format(self.type, self.name, self.if_return))
-        else: # Procedure
-            if self.if_params:
-                lines.append('{} {} ('.format(self.type, self.name))
-                param_strings = []
-                for param in self.if_params:
-                    param_strings.append(param.print_formal())
-                param_strings = ';^'.join(param_strings).split('^')
-                for param_str in param_strings:
-                    lines.append(param_str)
-                lines.append(') is')
-            else:
-                lines.append('{} {} is'.format(self.type, self.name))
-        lines.append('begin')
-        lines.append(' ')
-        lines.append('end {} {};'.format(self.type, self.name))
-
-        align_block_on_re(lines, ':')
-        align_block_on_re(lines, r':\s?(?:in\b|out\b|inout\b|buffer\b)?\s*', 'post')
-        align_block_on_re(lines, ':=')
-        indent_vhdl(lines, 1)
-
-        return '\n'.join(lines)
-
-    def call(self):
-        """Constructs a subprogram call.  Much simpler than the
-        declaration."""
-        lines = []
-        param_strings = []
-        if self.if_params:
-            lines.append('{} ('.format(self.name))
-            for param in self.if_params:
-                param_strings.append(param.print_call())
-            param_strings = ',^'.join(param_strings).split('^')
-            for param_str in param_strings:
-                lines.append(param_str)
-            lines.append(');')
-        else:
-            lines.append('{};'.format(self.name))
-
-        align_block_on_re(lines, '=>')
-        indent_vhdl(lines, 1)
-
-        return '\n'.join(lines)
-
-    def flatten(self):
-        new_params = []
-        if self.if_params:
-            for param in self.if_params:
-                if ',' in param.identifier:
-                    name_list = re.sub(r'\s*,\s*', ',', param.identifier).split(',')
-                    for name in name_list:
-                        new_param = copy.copy(param)
-                        new_param.identifier = name
-                        new_params.append(new_param)
-
-                else:
-                    new_params.append(param)
-            self.if_params = new_params
 

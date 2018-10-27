@@ -12,6 +12,7 @@ import collections
 import copy
 import sublime
 import ruamel.yaml
+import common_lang
 
 _debug = False
 
@@ -482,47 +483,48 @@ def indent_vhdl(lines, initial=0, tab_size=4, use_spaces=True):
 
 
 # ---------------------------------------------------------------
-class Port():
+class VhdlPort:
     """
     This is the class of ports and ways to manipulate ports.
     A port consists of a name (string), a mode (optional) (string),
     and a type (string).
     """
-    def __init__(self, port_str):
-        self.name = ""
-        self.mode = ""
-        self.type = ""
-        self.success = False
-        self.parse_str(port_str)
 
-    def parse_str(self, port_str):
+    @staticmethod
+    def parse_str(port_str: str):
         """Searches a string for the port fields."""
+        data = common_lang.Port()
+
         port_pattern = r'\s?(?P<name>.*?)\s?(?::)\s?(?P<mode>in\b|out\b|inout\b|buffer\b)?\s?(?P<type>.*)'
         pp = re.compile(port_pattern, re.IGNORECASE)
         s = re.search(pp, port_str)
         if s:
-            self.name = s.group('name')
-            self.mode = s.group('mode')
+            data.name = s.group('name')
+            data.mode = s.group('mode')
             # Sometimes the type has a trailing space.  Eliminating it.
-            self.type = re.sub(r'\s*$', '', s.group('type'))
-            self.success = True
+            data.type = re.sub(r'\s*$', '', s.group('type'))
+            data.success = True
         else:
             print('vhdl-mode: Could not parse port string.')
-            self.success = False
+            data.success = False
 
-    def print_as_signal(self):
+        return data
+
+    @staticmethod
+    def print_as_signal(data: common_lang.Port):
         """Returns a string with the port formatted for a signal."""
         # Trailing semicolon provided by calling routine.
-        line = 'signal {} : {}'.format(self.name, self.type)
+        line = 'signal {} : {}'.format(data.name, data.type)
         #print(line)
         return line
 
-    def print_as_portmap(self):
+    @staticmethod
+    def print_as_portmap(data: common_lang.Port):
         """Returns a string with the port formatted as a portmap."""
         # A port name might be a comma separated list which
         # needs to be split into several lines.
         # Remove any spaces.
-        compact = re.sub(r'\s', '', self.name)
+        compact = re.sub(r'\s', '', data.name)
         # Split at commas
         names = compact.split(',')
         lines = []
@@ -532,10 +534,11 @@ class Port():
         # it returns a list instead of a string.
         return lines
 
-    def print_as_port(self):
+    @staticmethod
+    def print_as_port(data: common_lang.Port):
         """Returns a string with the port formatted as a port."""
         # Trailing semicolon provided by calling routine.
-        line = '{} : {} {}'.format(self.name, self.mode, self.type)
+        line = '{} : {} {}'.format(data.name, data.mode, data.type)
         #print(line)
         return line
 
@@ -598,7 +601,7 @@ class Generic():
 class Parameter():
     """
     This is the class of subprogram parameters.  Might ultimately
-    replace even Port and Generic as the pattern has improved
+    replace even VhdlPort and Generic as the pattern has improved
     since starting the package.
     """
     def __init__(self, param_str):
@@ -742,7 +745,7 @@ class Interface():
             if port_str is not None:
                 port_list = port_str.split(';')
                 for item in port_list:
-                    port = Port(item)
+                    port = VhdlPort.parse_str(item)
                     if port.success:
                         self.if_ports.append(port)
             else:
