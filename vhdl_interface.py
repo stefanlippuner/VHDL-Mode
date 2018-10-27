@@ -12,7 +12,7 @@ from . import sv_lang   as sv
 from . import vhdl_util as util
 
 _interface = vhdl.Interface()
-_sv_interface = sv.Interface()
+_sv_interface = sv.SVInterface()
 
 #----------------------------------------------------------------
 class vhdlModeCopyPortsCommand(sublime_plugin.TextCommand):
@@ -165,9 +165,8 @@ class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
         # with the points.  At this point, all the processing should be
         # in the interface class.
         block = sublime.Region(startpoint, endpoint)
-        _sv_interface.if_string = self.view.substr(block)
         #print("Module port: " + _sv_interface.if_string)
-        _sv_interface.parse_block()
+        _sv_interface.parse_block(self.view.substr(block))
 
         # At the very end, move the point back to where we
         # started

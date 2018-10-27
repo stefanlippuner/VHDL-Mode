@@ -8,10 +8,7 @@
 ----------------------------------------------------------------
 """
 import re
-import collections
 import copy
-import sublime
-import ruamel.yaml
 
 _debug = True
 
@@ -324,164 +321,6 @@ def align_block_on_re(lines, regexp, padside='pre', ignore_comment_lines=True, s
 
 
 # ---------------------------------------------------------------
-def indent_vhdl(lines, initial=0, tab_size=4, use_spaces=True):
-    """
-    This method takes a list of lines of source code, that have
-    been left justified, and attempts impose indentation rules
-    upon it for beautification.
-    """
-    # 4th iteration of the ruleset.  Frankly I was getting tired of
-    # scrolling past it every time I worked on this file.  I abstracted the
-    # structures out into a YAML formatted file.  All the rules are there.
-    yaml = ruamel.yaml.YAML()
-    yaml.version = (1, 2)
-
-    rules_str = sublime.load_resource('Packages/VHDL Mode/Syntax/beautify_rules.yaml')
-    rules_blob = yaml.load(rules_str)
-
-    key_list = rules_blob['key_list']
-    open_rules = rules_blob['open_rules']
-    close_rules = rules_blob['close_rules']
-
-    # Initialize the indent indexes.
-    # closing_stack is using deque() and each element is:
-    # 0. The key name matched.
-    # 1. The current indent level.
-    # Since it's a stack, we're always referencing element 0 (top).
-    current_indent = next_indent = initial
-    parens = Parentheses()
-    closing_stack = collections.deque()
-    unbalance_flag = False
-    # Set the indent to tabs or spaces here
-    if use_spaces:
-        indent_char = ' '*tab_size
-    else:
-        indent_char = '\t'
-
-    # Scan the lines.
-    for i in range(len(lines)):
-        # Strip any comment from the line before analysis.
-        line = strip_comments(lines[i])
-        debug('{}: ci={} ni={} : {}'.format(i, current_indent, next_indent, lines[i]))
-
-        ############################################################
-        # Modification Rules
-        # Priority 1: Keywords
-        for key in key_list:
-            rule = open_rules[key]
-            key_search = re.search(rule['pattern'], line, re.IGNORECASE)
-            if key_search:
-                debug('{}: Evaluation line: {}'.format(i, line))
-                debug('{}: Evaluation pattern: {}'.format(i, rule['pattern']))
-                debug('{}: Type: {}'.format(i, key))
-                # If an ending type is noted, push the key onto the
-                # stack.  Save the current indent, and the current parenthetical
-                # state as well.
-                if rule['close_rule'] is not None:
-                    closing_stack.appendleft([key, current_indent, copy.copy(parens)])
-                # Apply the current and next indent values to
-                # the current values.
-                current_indent += rule['indent_rule'][0]
-                next_indent += rule['indent_rule'][1]
-                break
-
-        # Priority 2: Unbalanced Parenthesis
-        # Unbalanced parenthesis rules.  The line where an unbalanced paren
-        # begins is not modified, however for every line after that while we are
-        # unbalanced, indent one additional level to the current line (but not the
-        # next because we don't want to keep incrementing outwards.)  When balance
-        # is restored, reset the flag.
-        parens.scan(line)
-        debug('{}: {}'.format(i, parens.stats()))
-        if unbalance_flag:
-            debug('{}: Unbalanced parenthesis indenting.'.format(i))
-            current_indent += 1
-        unbalance_flag = not parens.balanced
-
-        # Special: Closing Item Reset
-        # Scan the line for ending key if one exists. If
-        # parentheses are balanced and then ending key has been found
-        # then reset the current and next indent level to this state.
-        # The evaluate flag is used because a branching lexical
-        # structure was discovered and the line needs to be rescanned.
-        if len(closing_stack):
-            eval_line = True
-            while eval_line:
-                debug('{}: Closing stack depth={} top={} indent={} parens={}'.format(i, len(closing_stack), closing_stack[0][0], closing_stack[0][1], closing_stack[0][2].stats()))
-                # Assume that we will traverse only once, and set the flag
-                # to false.  If we need to rescan, the flag will be set
-                # true.
-                eval_line = False
-
-                # Since the closing rule pattern could be multiple patterns, we have to scan
-                # through that item, referencing into the close_rules dictionary for the
-                # pattern.  Assigning the rule list to another name to stop the madness
-                # of indirection.
-                stack_key, stack_indent, stack_parens = closing_stack[0]
-                rules = open_rules[stack_key]['close_rule']
-
-                # Step through and search for the end pattern.
-                for close_key, result in rules:
-                    debug('{}: Evaluation line: {}'.format(i, line))
-                    debug('{}: Evaluation pattern: {}'.format(i, close_rules[close_key]))
-                    close_search = re.search(close_rules[close_key], line, re.IGNORECASE)
-                    if close_search and parens.delta == stack_parens.delta:
-                        # We've found a match and are in a balanced state.
-                        debug('{}: Found closing match to {}'.format(i, stack_key))
-                        if result is not None:
-                            # We have found a continuation of the structure.
-                            # Pop off the top of the stack, then append the new
-                            # key to the top of the stack and re-evaluate.
-                            debug('{}: Continuation found.  Re-evaluating for {}'.format(i, result))
-                            closing_stack.popleft()
-                            closing_stack.appendleft([result, stack_indent, stack_parens])
-                            # Need to do a solo line check, mainly for those is clauses.
-                            if open_rules[result]['solo_flag']:
-                                solo_search = re.search(r'^\)?\s?'+close_rules[close_key], line, re.IGNORECASE)
-                                if solo_search:
-                                    # Unindent this line most likely
-                                    debug('{}: Solo intermediate found.'.format(i))
-                                    current_indent += open_rules[result]['start_offset']
-                            eval_line = True
-                        else:
-                            # This is the endpoint of the structure.
-                            # Behavior changes based on the solo flag
-                            if open_rules[stack_key]['solo_flag']:
-                                # Solo flag rules means we only apply the closing
-                                # rule to the current line if the symbol is alone
-                                # on a line, otherwise we apply the closing rule
-                                # to the following line.
-                                # Scan the line again to check for the beginning
-                                # of the line variation.  (Small alteration to
-                                # check for an paren in the case of endclauses
-                                # that might not have the built-in paren)
-                                debug('{}: Using solo line rule.'.format(i))
-                                solo_search = re.search(r'^\)?\s?'+close_rules[close_key], line, re.IGNORECASE)
-                                if solo_search:
-                                    # Revert on this line
-                                    debug('{}: Solo closing found here.'.format(i))
-                                    current_indent = stack_indent + open_rules[stack_key]['close_offset']
-                                    next_indent = stack_indent
-                                else:
-                                    debug('{}: Close is not alone on this line.'.format(i))
-                                    # Revert on the next line
-                                    next_indent = stack_indent
-                            else:
-                                debug('{}: Regular ending rule.'.format(i))
-                                # No special rule handling.  Revert on this line.
-                                current_indent = next_indent = stack_indent
-                            # Pop the top of the stack and we're done with evaluating
-                            # closing strings.
-                            closing_stack.popleft()
-
-        # Modify the line here.
-        lines[i] = indent_char*current_indent+lines[i]
-        debug('{}: ci={} ni={} : {} \n'.format(i, current_indent, next_indent, lines[i]))
-        # Set current for next line.
-        current_indent = next_indent
-
-
-# ---------------------------------------------------------------
 class Port():
     """
     This is the class of ports and ways to manipulate ports.
@@ -490,25 +329,47 @@ class Port():
     """
     def __init__(self, port_str):
         self.name = ""
-        self.mode = ""
+        self.mode = ""  # the direction of the port
         self.type = ""
         self.success = False
         self.parse_str(port_str)
 
     def parse_str(self, port_str):
         """Searches a string for the port fields."""
-        port_pattern = r'\s?(?P<name>.*?)\s?(?::)\s?(?P<mode>in\b|out\b|inout\b|buffer\b)?\s?(?P<type>.*)'
-        pp = re.compile(port_pattern, re.IGNORECASE)
+
+        # In a first step, we look for the (optional) port direction
+        dir_pattern = r'(?P<dir>input|output|inout?)\s+'
+        s_dir = re.search(re.compile(dir_pattern, re.IGNORECASE), port_str)
+        if s_dir:
+            self.mode = s_dir.group('dir')
+
+            # remove the port direction and any trailing whitespace
+            port_str = re.sub(dir_pattern, '', port_str)
+        else:
+            self.mode = 'inout'
+
+        type_pattern = r'(?P<type>.*?)\s+(?P<name>\S*)$'
+        pp = re.compile(type_pattern, re.IGNORECASE)
         s = re.search(pp, port_str)
+
         if s:
             self.name = s.group('name')
-            self.mode = s.group('mode')
-            # Sometimes the type has a trailing space.  Eliminating it.
-            self.type = re.sub(r'\s*$', '', s.group('type'))
+            self.type = s.group('type')
             self.success = True
         else:
-            print('vhdl-mode: Could not parse port string.')
-            self.success = False
+            self.type = 'wire'
+
+            if len(port_str) >= 1:
+                self.name = port_str
+                self.success = True
+            else:
+                self.success = False
+
+        if self.success:
+            print('port name: ' + self.name + ", mode: " + self.mode + ", type: " + self.type)
+        else:
+            print('vhdl-mode: Could not parse port string: ' + port_str + '.')
+
 
     def print_as_signal(self):
         """Returns a string with the port formatted for a signal."""
@@ -541,35 +402,51 @@ class Port():
 
 
 # ---------------------------------------------------------------
-class Generic():
+class ModuleParameter():
     """
-    This is the class of generics and ways to manipulate them.
+    This is the class of parameters and ways to manipulate them.
     A generic consists of a name (string), a type (string),
     and a default value (string).
     """
     def __init__(self, gen_str):
         self.name = ""
         self.type = ""
+        self.assignment = ""
         self.success = False
         self.parse_str(gen_str)
 
     def parse_str(self, gen_str):
+
+        #debug("Param parse str: " + gen_str)
+
         """Attempts to extract the information from a generic interface."""
         # Right now I'm going to punt.  There are so many variations
         # on these that it's difficult to write a RE for it.  Also
         # there are few ways to have to rewrite it.  We will extract
         # a name, and then a type string (which may include defaults)
-        parameter_pattern = r'\s?(?P<name>.*?)\s?(?::)\s?(?P<type>.*)'
+        parameter_type_patter = r'(?P<ptype>parameter|localparam)\s+(?P<type>\S+?)\s+(?P<name>\S+?)\s*(?:=)\s*(?P<assignment>.*)'
+        parameter_pattern = r'(?P<ptype>parameter|localparam)\s+(?P<name>\S+?)\s*(?:=)\s*(?P<assignment>.*)'
         gp = re.compile(parameter_pattern, re.IGNORECASE)
+        gpt = re.compile(parameter_type_patter, re.IGNORECASE)
         s = re.search(gp, gen_str)
-        if s:
-            self.name = s.group('name')
+        st = re.search(gpt, gen_str)
+        if st:
+            self.name = st.group('name')
             # Sometimes the type has a trailing space.  Eliminating it.
-            self.type = re.sub(r'\s*$', '', s.group('type'))
+            self.type = st.group('type')
+            self.assignment = st.group('assignment')
+            self.success = True
+        elif s:
+            self.name = s.group('name')
+            self.type = 'int' # this should actually be deducted from the default, but ...
+            self.assignment = s.group('assignment')
             self.success = True
         else:
-            print('vhdl-mode: Could not parse generic string.')
+            print('vhdl-mode: Could not parse generic string: ' + gen_str + '.')
             self.success = False
+
+        if self.success:
+            debug("parameter name: " + self.name + ", type: " + self.type + ", assignment: " + self.assignment)
 
     def print_as_generic(self):
         """Returns a string with the generic interface as a generic."""
@@ -598,7 +475,7 @@ class Generic():
 class Parameter():
     """
     This is the class of subprogram parameters.  Might ultimately
-    replace even Port and Generic as the pattern has improved
+    replace even Port and ModuleParameter as the pattern has improved
     since starting the package.
     """
     def __init__(self, param_str):
@@ -651,7 +528,7 @@ class Parameter():
 
 
 # ---------------------------------------------------------------
-class Interface():
+class SVInterface():
     """
     The Interface class contains the essential elements to a
     VHDL interface structure as defined by an entity or component
@@ -668,13 +545,13 @@ class Interface():
         self.if_ports = []
         self.if_parameters = []
 
-    def interface_start(self, line):
+    def interface_start(self, line: str):
         """Attempts to identify the start of an interface."""
         # Checks for module starting lines
         head_pattern = r"(?P<type>module|macromodule)\s*(?P<name>\w*)"
         p = re.compile(head_pattern, re.IGNORECASE)
         s = re.search(p, line)
-        #debug(line)
+        # debug(line)
         if s:
             # Note, it's returning the horizontal position which
             # is different from the "startpoint" class variable
@@ -687,12 +564,12 @@ class Interface():
         else:
             return None
 
-    def interface_end(self, line):
+    def interface_end(self, line: str):
         """Attempts to identify the end of an interface."""
         # Checks to see if the line passed contains the
         # end string matching the starting type.  The
         # type and name are optional technically.
-        tail_pattern = r";".format(self.type, self.name)
+        tail_pattern = r"endmodule".format(self.type, self.name)
         p = re.compile(tail_pattern, re.IGNORECASE)
         s = re.search(p, line)
         if s:
@@ -704,25 +581,28 @@ class Interface():
         else:
             return None
 
-    def strip_comments(self):
+    @staticmethod
+    def strip_comments(if_string: str):
         """Removes comments from the interface to aid parsing."""
         # Comments will likely screw up the parsing of the
         # block and we don't need to copy them, so strip them out
         # TODO : Handle block comments someday.
         p = re.compile(r"(?://).*?(\n|$)")
-        self.if_string = re.sub(p, r"\n", self.if_string)
+        if_string = re.sub(p, r"\n", if_string)
+        return if_string
 
-    def strip_whitespace(self):
+    @staticmethod
+    def strip_whitespace(if_string: str):
         """Removes extra whitespace to aid parsing."""
         # Making sure I don't have to deal with newlines while
         # parsing.  Changing all whitespace to a single space.
         # This is required due to rules regarding port modes
         # which might conflict with type names.
         p = re.compile(r"\s+")
-        self.if_string = re.sub(p, " ", self.if_string)
+        if_string = re.sub(p, " ", if_string)
+        return if_string
 
-
-    def parse_parameter_port(self):
+    def parse_parameter_port(self, if_string: str):
         """Attempts to break the interface into known parameter and
         port sections and then calls individual parsing routines."""
         # Initialize things.
@@ -735,24 +615,23 @@ class Interface():
         parameter_pattern  = re.compile(r'#\s*\((.*?)\)', re.I)
         port_pattern       = re.compile(r'\((.*?)\)', re.I)
 
-        if_string = self.if_string
         parameter_search   = re.search(parameter_pattern, if_string)
 
         # The parameter declarations comes first
         if parameter_search:
             parameter_str = Parentheses().extract(if_string[parameter_search.start():])
-            debug("Par str: " + parameter_str)
+            # debug("Par str: " + parameter_str)
 
             # remove the parameters from the string
             if_string = re.sub(parameter_pattern, "", if_string)
-            debug("New if str: " + if_string)
+            # debug("New if str: " + if_string)
 
         # Now that all the parameters have been removed, we can look for the ports
         port_search        = re.search(port_pattern, if_string)
 
         if port_search:
             port_str = Parentheses().extract(if_string[port_search.start():])
-            debug("Port str: " + port_str)
+            # debug("Port str: " + port_str)
 
         # Now parse the two strings and make them into lists
 
@@ -760,34 +639,31 @@ class Interface():
         if parameter_search and parameter_str is not None:
             parameter_list = parameter_str.split(',')
             for item in parameter_list:
-                generic = Generic(item)
-                if generic.success:
-                    self.if_parameters.append(generic)
+                parameter = ModuleParameter(item)
+                if parameter.success:
+                    self.if_parameters.append(parameter)
         else:
             print('vhdl-mode: No parameters found.')
-            parameter_str = ""
 
         # Parse the port string
         if port_search and port_str is not None:
             port_list = port_str.split(',')
-            for item in port_list:
+            for item in port_list:            
                 port = Port(item)
                 if port.success:
                     self.if_ports.append(port)
         else:
             print('vhdl-mode: No ports found.')
-            port_str = ""
 
-    def parse_block(self):
+    def parse_block(self, if_string: str):
         """Top level routine for extracting information out of a
         string block believed to contain a VHDL interface."""
         # This contains the whole parsing routine in a single method
         # because the calling command method doesn't need to know
         # about it.
-        self.strip_comments()
-        self.strip_whitespace()
-        print(self.if_string)
-        self.parse_parameter_port()
+        if_string = self.strip_comments(if_string)
+        if_string = self.strip_whitespace(if_string)
+        self.parse_parameter_port(if_string)
 
     def signals(self):
         """
