@@ -544,20 +544,18 @@ class VhdlPort:
 
 
 # ---------------------------------------------------------------
-class Generic():
+class VhdlGeneric:
     """
     This is the class of generics and ways to manipulate them.
     A generic consists of a name (string), a type (string),
     and a default value (string).
     """
-    def __init__(self, gen_str):
-        self.name = ""
-        self.type = ""
-        self.success = False
-        self.parse_str(gen_str)
 
-    def parse_str(self, gen_str):
+    @staticmethod
+    def parse_str(gen_str):
         """Attempts to extract the information from a generic interface."""
+        data = common_lang.Generic()
+
         # Right now I'm going to punt.  There are so many variations
         # on these that it's difficult to write a RE for it.  Also
         # there are few ways to have to rewrite it.  We will extract
@@ -566,42 +564,47 @@ class Generic():
         gp = re.compile(gen_pattern, re.IGNORECASE)
         s = re.search(gp, gen_str)
         if s:
-            self.name = s.group('name')
+            data.name = s.group('name')
             # Sometimes the type has a trailing space.  Eliminating it.
-            self.type = re.sub(r'\s*$', '', s.group('type'))
-            self.success = True
+            data.type = re.sub(r'\s*$', '', s.group('type'))
+            data.success = True
         else:
             print('vhdl-mode: Could not parse generic string.')
-            self.success = False
+            data.success = False
 
-    def print_as_generic(self):
+        return data
+
+    @staticmethod
+    def print_as_generic(data):
         """Returns a string with the generic interface as a generic."""
-        line = '{} : {}'.format(self.name, self.type)
+        line = '{} : {}'.format(data.name, data.type)
         return line
 
-    def print_as_genmap(self):
+    @staticmethod
+    def print_as_genmap(data):
         """Returns a string with the generic interface as a generic map."""
-        line = '{} => {}'.format(self.name, self.name)
+        line = '{} => {}'.format(data.name, data.name)
         return line
 
-    def print_as_constant(self):
+    @staticmethod
+    def print_as_constant(data):
         '''Returns a string with the generic interface as a constant.'''
         # So... generic doesn't necessarily have to have a default value
         # even though it should.  So this requires a little detective work
         # to know whether to include the whole line or add in the necessary
         # constant definition.
-        s = re.search(r':=', self.type, re.I)
+        s = re.search(r':=', data.type, re.I)
         if s:
-            line = 'constant {} : {}'.format(self.name, self.type)
+            line = 'constant {} : {}'.format(data.name, data.type)
         else:
-            line = 'constant {} : {} := <value>'.format(self.name, self.type)
+            line = 'constant {} : {} := <value>'.format(data.name, data.type)
         return line
 
 # ---------------------------------------------------------------
 class Parameter():
     """
     This is the class of subprogram parameters.  Might ultimately
-    replace even VhdlPort and Generic as the pattern has improved
+    replace even VhdlPort and VhdlGeneric as the pattern has improved
     since starting the package.
     """
     def __init__(self, param_str):
@@ -654,9 +657,9 @@ class Parameter():
 
 
 # ---------------------------------------------------------------
-class Interface():
+class VhdlInterface:
     """
-    The Interface class contains the essential elements to a
+    The VhdlInterface class contains the essential elements to a
     VHDL interface structure as defined by an entity or component
     declaration.  In addition, it comprises the methods used to
     extract the structural elements from strings passed to it
@@ -665,11 +668,10 @@ class Interface():
     be transformed in various ways.
     """
     def __init__(self):
-        self.name = ""
-        self.type = ""
-        self.if_string = ""
-        self.if_ports = []
-        self.if_generics = []
+        self.data = common_lang.Interface()
+
+    def name(self):
+        return self.data.name
 
     def interface_start(self, line):
         """Attempts to identify the start of an interface."""
@@ -681,8 +683,8 @@ class Interface():
             # Note, it's returning the horizontal position which
             # is different from the "startpoint" class variable
             # above which is the position in the file.
-            self.type = s.group('type')
-            self.name = s.group('name')
+            self.data.type = s.group('type')
+            self.data.name = s.group('name')
             return s.start()
         else:
             return None
@@ -692,7 +694,7 @@ class Interface():
         # Checks to see if the line passed contains the
         # end string matching the starting type.  The
         # type and name are optional technically.
-        tail_pattern = r"(?:end)\s*(?:{})?\s*(?:{})?\s*;".format(self.type, self.name)
+        tail_pattern = r"(?:end)\s*(?:{})?\s*(?:{})?\s*;".format(self.data.type, self.data.name)
         p = re.compile(tail_pattern, re.IGNORECASE)
         s = re.search(p, line)
         if s:
@@ -709,7 +711,7 @@ class Interface():
         # block and we don't need to copy them, so strip them out
         # TODO : Handle block comments someday.
         p = re.compile(r"(?:--).*?(\n|$)")
-        self.if_string = re.sub(p, r"\n", self.if_string)
+        self.data.if_string = re.sub(p, r"\n", self.data.if_string)
 
     def strip_whitespace(self):
         """Removes extra whitespace to aid parsing."""
@@ -718,36 +720,36 @@ class Interface():
         # This is required due to rules regarding port modes
         # which might conflict with type names.
         p = re.compile(r"\s+")
-        self.if_string = re.sub(p, " ", self.if_string)
+        self.data.if_string = re.sub(p, " ", self.data.if_string)
 
 
     def parse_generic_port(self):
         """Attempts to break the interface into known generic and
         port sections and then calls individual parsing routines."""
         # Initialize things.
-        self.if_ports = []
-        self.if_generics = []
+        self.data.if_ports = []
+        self.data.if_generics = []
 
         # Now checking for the existence of generic and port zones.
         # Split into generic string and port strings and then parse
         # each separately.  Standard demands generic first, then port.
         gen_pattern  = re.compile(r'generic\s*\(', re.I)
         port_pattern = re.compile(r'port\s*\(', re.I)
-        gen_search   = re.search(gen_pattern, self.if_string)
-        port_search  = re.search(port_pattern, self.if_string)
+        gen_search   = re.search(gen_pattern, self.data.if_string)
+        port_search  = re.search(port_pattern, self.data.if_string)
 
         # The potential for a passive block in an entity means the previous
         # method of extracting the port string will no longer work and the
         # more tedious (though foolproof) method of searching forward from
         # the port starting point is necessary.
         if port_search:
-            port_str = Parentheses().extract(self.if_string[port_search.start():])
+            port_str = Parentheses().extract(self.data.if_string[port_search.start():])
             if port_str is not None:
                 port_list = port_str.split(';')
                 for item in port_list:
                     port = VhdlPort.parse_str(item)
                     if port.success:
-                        self.if_ports.append(port)
+                        self.data.if_ports.append(port)
             else:
                 print('vhdl-mode: No ports found.')
                 port_str = ""
@@ -756,13 +758,13 @@ class Interface():
             port_str = ""
 
         if gen_search:
-            gen_str = Parentheses().extract(self.if_string[gen_search.start():])
+            gen_str = Parentheses().extract(self.data.if_string[gen_search.start():])
             if gen_str is not None:
                 gen_list = gen_str.split(';')
                 for item in gen_list:
-                    generic = Generic(item)
+                    generic = VhdlGeneric.parse_str(item)
                     if generic.success:
-                        self.if_generics.append(generic)
+                        self.data.if_generics.append(generic)
             else:
                 print('vhdl-mode: No generics found.')
                 gen_str = ""
@@ -770,12 +772,13 @@ class Interface():
             print('vhdl-mode: No generics found.')
             gen_str = ""
 
-    def parse_block(self):
+    def parse_block(self, if_string: str):
         """Top level routine for extracting information out of a
         string block believed to contain a VHDL interface."""
         # This contains the whole parsing routine in a single method
         # because the calling command method doesn't need to know
         # about it.
+        self.data.if_string = if_string
         self.strip_comments()
         self.strip_whitespace()
         self.parse_generic_port()
@@ -787,8 +790,8 @@ class Interface():
         """
         lines = []
         # Construct structure and insert
-        if self.if_ports:
-            for port in self.if_ports:
+        if self.data.if_ports:
+            for port in self.data.if_ports:
                 lines.append(port.print_as_signal() + ';')
             align_block_on_re(lines, r':')
             indent_vhdl(lines, 1)
@@ -802,8 +805,8 @@ class Interface():
         listed as constants.
         '''
         lines = []
-        if self.if_generics:
-            for generic in self.if_generics:
+        if self.data.if_generics:
+            for generic in self.data.if_generics:
                 lines.append(generic.print_as_constant() + ';')
             align_block_on_re(lines, r':')
             align_block_on_re(lines, r':=')
@@ -820,35 +823,35 @@ class Interface():
         # regular instantiation.
         if name:
             inst_name = name
-        elif self.name in instances:
-            instance_count = len(instances[self.name])
-            inst_name = self.name+'_{}'.format(instance_count+1)
+        elif self.data.name in instances:
+            instance_count = len(instances[self.data.name])
+            inst_name = self.data.name+'_{}'.format(instance_count+1)
             # Check for duplicate name and just increment index until clear.
-            while inst_name in instances[self.name]:
+            while inst_name in instances[self.data.name]:
                 instance_count += 1
-                inst_name = self.name+'_{}'.format(instance_count+1)
+                inst_name = self.data.name+'_{}'.format(instance_count+1)
         else:
-            inst_name = self.name+'_1'
+            inst_name = self.data.name+'_1'
         lines = []
-        lines.append("{} : entity work.{}".format(inst_name, self.name))
-        if self.if_generics:
+        lines.append("{} : entity work.{}".format(inst_name, self.data.name))
+        if self.data.if_generics:
             lines.append("generic map (")
             # Put the generics in here.  Join with , and a temp
             # character then split at the temp character.  That
             # should create the lines with semicolons on all but
             # the last.
             gen_strings = []
-            for generic in self.if_generics:
+            for generic in self.data.if_generics:
                 gen_strings.append(generic.print_as_genmap())
             gen_strings = ',^'.join(gen_strings).split('^')
             for gen_str in gen_strings:
                 lines.append(gen_str)
             lines.append(")")
-        if self.if_ports:
+        if self.data.if_ports:
             lines.append("port map (")
             # Put the ports in here.  Same as before.
             port_strings = []
-            for port in self.if_ports:
+            for port in self.data.if_ports:
                 # Print as portmap returns a list unlike others
                 for mapping in port.print_as_portmap():
                     port_strings.append(mapping)
@@ -869,31 +872,31 @@ class Interface():
         """
         # Construct structure
         lines = []
-        lines.append("component {} is".format(self.name))
-        if self.if_generics:
+        lines.append("component {} is".format(self.data.name))
+        if self.data.if_generics:
             lines.append("generic (")
             # Put the generics in here.  Join with ; and a temp
             # character then split at the temp character.  That
             # should create the lines with semicolons on all but
             # the last.
             gen_strings = []
-            for generic in self.if_generics:
+            for generic in self.data.if_generics:
                 gen_strings.append(generic.print_as_generic())
             gen_strings = ';^'.join(gen_strings).split('^')
             for gen_str in gen_strings:
                 lines.append(gen_str)
             lines.append(");")
-        if self.if_ports:
+        if self.data.if_ports:
             lines.append("port (")
             # Put the ports in here.  Same as before.
             port_strings = []
-            for port in self.if_ports:
+            for port in self.data.if_ports:
                 port_strings.append(port.print_as_port())
             port_strings = ';^'.join(port_strings).split('^')
             for port_str in port_strings:
                 lines.append(port_str)
             lines.append(");")
-        lines.append("end component {};".format(self.name))
+        lines.append("end component {};".format(self.data.name))
 
         align_block_on_re(lines, ':')
         align_block_on_re(lines, r':\s?(?:in\b|out\b|inout\b|buffer\b)?\s*', 'post')
@@ -909,31 +912,31 @@ class Interface():
         """
         # Construct structure
         lines = []
-        lines.append("entity {} is".format(self.name))
-        if self.if_generics:
+        lines.append("entity {} is".format(self.data.name))
+        if self.data.if_generics:
             lines.append("generic (")
             # Put the generics in here.  Join with ; and a temp
             # character then split at the temp character.  That
             # should create the lines with semicolons on all but
             # the last.
             gen_strings = []
-            for generic in self.if_generics:
+            for generic in self.data.if_generics:
                 gen_strings.append(generic.print_as_generic())
             gen_strings = ';^'.join(gen_strings).split('^')
             for gen_str in gen_strings:
                 lines.append(gen_str)
             lines.append(");")
-        if self.if_ports:
+        if self.data.if_ports:
             lines.append("port (")
             # Put the ports in here.  Same as before.
             port_strings = []
-            for port in self.if_ports:
+            for port in self.data.if_ports:
                 port_strings.append(port.print_as_port())
             port_strings = ';^'.join(port_strings).split('^')
             for port_str in port_strings:
                 lines.append(port_str)
             lines.append(");")
-        lines.append("end entity {};".format(self.name))
+        lines.append("end entity {};".format(self.data.name))
 
         align_block_on_re(lines, ':')
         align_block_on_re(lines, r':\s?(?:in\b|out\b|inout\b|buffer\b)?\s*', 'post')
@@ -948,9 +951,9 @@ class Interface():
         is a line with multiple token names on the same line, will
         make copies of that port with the individual token names.
         '''
-        if self.if_generics:
+        if self.data.if_generics:
             new_generics = []
-            for generic in self.if_generics:
+            for generic in self.data.if_generics:
                 if ',' in generic.name:
                     name_list = re.sub(r'\s*,\s*', ',', generic.name).split(',')
                     for name in name_list:
@@ -959,10 +962,10 @@ class Interface():
                         new_generics.append(new_generic)
                 else:
                     new_generics.append(generic)
-            self.if_generics = new_generics
-        if self.if_ports:
+            self.data.if_generics = new_generics
+        if self.data.if_ports:
             new_ports = []
-            for port in self.if_ports:
+            for port in self.data.if_ports:
                 if ',' in port.name:
                     name_list = re.sub(r'\s*,\s*', ',', port.name).split(',')
                     for name in name_list:
@@ -971,7 +974,7 @@ class Interface():
                         new_ports.append(new_port)
                 else:
                     new_ports.append(port)
-            self.if_ports = new_ports
+            self.data.if_ports = new_ports
 
     def reverse(self):
         '''
@@ -980,8 +983,8 @@ class Interface():
         out and buffer become in
         inout is unchanged.
         '''
-        if self.if_ports:
-            for port in self.if_ports:
+        if self.data.if_ports:
+            for port in self.data.if_ports:
                 if port.mode.lower() == 'in':
                     port.mode = 'out'
                 elif port.mode.lower() == 'out' or port.mode.lower() == 'buffer':

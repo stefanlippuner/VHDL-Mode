@@ -313,24 +313,18 @@ class SvPort:
 
 
 # ---------------------------------------------------------------
-class ModuleParameter():
+class SvParameter:
     """
     This is the class of parameters and ways to manipulate them.
     A generic consists of a name (string), a type (string),
     and a default value (string).
     """
-    def __init__(self, gen_str):
-        self.name = ""
-        self.type = ""
-        self.assignment = ""
-        self.success = False
-        self.parse_str(gen_str)
 
-    def parse_str(self, gen_str):
-
-        #debug("Param parse str: " + gen_str)
-
+    @staticmethod
+    def parse_str(gen_str):
         """Attempts to extract the information from a generic interface."""
+        data = common_lang.Port()
+
         # Right now I'm going to punt.  There are so many variations
         # on these that it's difficult to write a RE for it.  Also
         # there are few ways to have to rewrite it.  We will extract
@@ -342,106 +336,56 @@ class ModuleParameter():
         s = re.search(gp, gen_str)
         st = re.search(gpt, gen_str)
         if st:
-            self.name = st.group('name')
+            data.name = st.group('name')
             # Sometimes the type has a trailing space.  Eliminating it.
-            self.type = st.group('type')
-            self.assignment = st.group('assignment')
-            self.success = True
+            data.type = st.group('type')
+            data.assignment = st.group('assignment')
+            data.success = True
         elif s:
-            self.name = s.group('name')
-            self.type = 'int' # this should actually be deducted from the default, but ...
-            self.assignment = s.group('assignment')
-            self.success = True
+            data.name = s.group('name')
+            data.type = 'int' # this should actually be deducted from the default, but ...
+            data.assignment = s.group('assignment')
+            data.success = True
         else:
             print('vhdl-mode: Could not parse generic string: ' + gen_str + '.')
-            self.success = False
+            data.success = False
 
-        if self.success:
-            debug("parameter name: " + self.name + ", type: " + self.type + ", assignment: " + self.assignment)
+        if data.success:
+            debug("parameter name: " + data.name + ", type: " + data.type + ", assignment: " + data.assignment)
 
-    def print_as_generic(self):
+        return data
+
+    @staticmethod
+    def print_as_generic(data):
         """Returns a string with the generic interface as a generic."""
-        line = '{} : {}'.format(self.name, self.type)
+        line = '{} : {}'.format(data.name, data.type)
         return line
 
-    def print_as_genmap(self):
+    @staticmethod
+    def print_as_genmap(data):
         """Returns a string with the generic interface as a generic map."""
-        line = '{} => {}'.format(self.name, self.name)
+        line = '{} => {}'.format(data.name, data.name)
         return line
 
-    def print_as_constant(self):
+    @staticmethod
+    def print_as_constant(data):
         """Returns a string with the generic interface as a constant."""
         # So... generic doesn't necessarily have to have a default value
         # even though it should.  So this requires a little detective work
         # to know whether to include the whole line or add in the necessary
         # constant definition.
-        s = re.search(r':=', self.type, re.I)
+        s = re.search(r':=', data.type, re.I)
         if s:
-            line = 'constant {} : {}'.format(self.name, self.type)
+            line = 'constant {} : {}'.format(data.name, data.type)
         else:
-            line = 'constant {} : {} := <value>'.format(self.name, self.type)
+            line = 'constant {} : {} := <value>'.format(data.name, data.type)
         return line
 
-# ---------------------------------------------------------------
-class Parameter():
-    """
-    This is the class of subprogram parameters.  Might ultimately
-    replace even SvPort and ModuleParameter as the pattern has improved
-    since starting the package.
-    """
-    def __init__(self, param_str):
-        self.storage = ""
-        self.identifier = ""
-        self.mode = ""
-        self.type = ""
-        self.expression = ""
-        self.success = False
-        self.parse_str(param_str)
-
-    def parse_str(self, param_str):
-        """Better regexp should be able to extract everything!"""
-        regex = r"^\s*((?P<storage>constant|signal|variable|file)\s*)?((?P<name>.*?)\s*)(?::\s*)((?P<mode>inout\b|in\b|out\b|buffer\b)\s*)?((?P<type>.*?)\s*)((?:\:\=)\s*(?P<expression>.*?)\s*)?$"
-        #print('Input: "{}"'.format(param_str))
-        s = re.search(regex, param_str)
-        if s:
-            #print('Storage: "{}", Name: "{}", Mode: "{}", Type: "{}", Expression: "{}"'.format(s.group('storage'), s.group('name'), s.group('mode'), s.group('type'), s.group('expression')))
-            if s.group('storage'):
-                self.storage = s.group('storage')
-            self.identifier = s.group('name')
-            if s.group('mode'):
-                self.mode = s.group('mode')
-            self.type = s.group('type')
-            if s.group('expression'):
-                self.expression = s.group('expression')
-            self.success = True
-        else:
-            print('vhdl-mode: Could not parse parameter string.')
-            self.success = False
-
-    def print_formal(self):
-        """Lots of optional parameters, needs to be build up gradually."""
-        string = ""
-        if self.storage:
-            string = string + '{} '.format(self.storage)
-        string = string + '{} : '.format(self.identifier)
-        if self.mode:
-            string = string + '{} '.format(self.mode)
-        string = string + '{}'.format(self.type)
-        if self.expression:
-            string = string + ' := {}'.format(self.expression)
-        #print(string)
-        return string
-
-    def print_call(self):
-        """Super easy transform."""
-        string = '{} => {}'.format(self.identifier, self.identifier)
-        return string
-
 
 # ---------------------------------------------------------------
-class SVInterface():
+class SVInterface:
     """
-    The Interface class contains the essential elements to a
+    The VhdlInterface class contains the essential elements to a
     VHDL interface structure as defined by an entity or component
     declaration.  In addition, it comprises the methods used to
     extract the structural elements from strings passed to it
@@ -450,11 +394,15 @@ class SVInterface():
     be transformed in various ways.
     """
     def __init__(self):
-        self.name = ""
-        self.type = ""
-        self.if_string = ""
-        self.if_ports = []
-        self.if_parameters = []
+        self.data = common_lang.Interface()
+        self.data.name = ""
+        self.data.type = ""
+        self.data.if_string = ""
+        self.data.if_ports = []
+        self.data.if_parameters = []
+
+    def name(self):
+        return self.data.name
 
     def interface_start(self, line: str):
         """Attempts to identify the start of an interface."""
@@ -467,10 +415,10 @@ class SVInterface():
             # Note, it's returning the horizontal position which
             # is different from the "startpoint" class variable
             # above which is the position in the file.
-            self.type = s.group('type')
-            self.name = s.group('name')
+            self.data.type = s.group('type')
+            self.data.name = s.group('name')
             debug("Hit at: " + line)
-            debug("type: " + self.type + ", name: " + self.name)
+            debug("type: " + self.data.type + ", name: " + self.data.name)
             return s.start()
         else:
             return None
@@ -480,7 +428,7 @@ class SVInterface():
         # Checks to see if the line passed contains the
         # end string matching the starting type.  The
         # type and name are optional technically.
-        tail_pattern = r"endmodule".format(self.type, self.name)
+        tail_pattern = r"endmodule".format(self.data.type, self.data.name)
         p = re.compile(tail_pattern, re.IGNORECASE)
         s = re.search(p, line)
         if s:
@@ -517,8 +465,8 @@ class SVInterface():
         """Attempts to break the interface into known parameter and
         port sections and then calls individual parsing routines."""
         # Initialize things.
-        self.if_ports = []
-        self.if_parameters = []
+        self.data.if_ports = []
+        self.data.if_parameters = []
 
         # Now checking for the existence of generic and port zones.
         # Split into generic string and port strings and then parse
@@ -550,19 +498,19 @@ class SVInterface():
         if parameter_search and parameter_str is not None:
             parameter_list = parameter_str.split(',')
             for item in parameter_list:
-                parameter = ModuleParameter(item)
+                parameter = SvParameter.parse_str(item)
                 if parameter.success:
-                    self.if_parameters.append(parameter)
+                    self.data.if_parameters.append(parameter)
         else:
             print('vhdl-mode: No parameters found.')
 
         # Parse the port string
         if port_search and port_str is not None:
             port_list = port_str.split(',')
-            for item in port_list:            
+            for item in port_list:
                 port = SvPort.parse_str(item)
                 if port.success:
-                    self.if_ports.append(port)
+                    self.data.if_ports.append(port)
         else:
             print('vhdl-mode: No ports found.')
 
@@ -583,8 +531,8 @@ class SVInterface():
         """
         lines = []
         # Construct structure and insert
-        if self.if_ports:
-            for port in self.if_ports:
+        if self.data.if_ports:
+            for port in self.data.if_ports:
                 lines.append(port.print_as_signal() + ';')
             align_block_on_re(lines, r':')
             indent_vhdl(lines, 1)
@@ -598,8 +546,8 @@ class SVInterface():
         listed as constants.
         """
         lines = []
-        if self.if_parameters:
-            for generic in self.if_parameters:
+        if self.data.if_parameters:
+            for generic in self.data.if_parameters:
                 lines.append(generic.print_as_constant() + ';')
             align_block_on_re(lines, r':')
             align_block_on_re(lines, r':=')
@@ -616,35 +564,35 @@ class SVInterface():
         # regular instantiation.
         if name:
             inst_name = name
-        elif self.name in instances:
-            instance_count = len(instances[self.name])
-            inst_name = self.name+'_{}'.format(instance_count+1)
+        elif self.data.name in instances:
+            instance_count = len(instances[self.data.name])
+            inst_name = self.data.name+'_{}'.format(instance_count+1)
             # Check for duplicate name and just increment index until clear.
-            while inst_name in instances[self.name]:
+            while inst_name in instances[self.data.name]:
                 instance_count += 1
-                inst_name = self.name+'_{}'.format(instance_count+1)
+                inst_name = self.data.name+'_{}'.format(instance_count+1)
         else:
-            inst_name = self.name+'_1'
+            inst_name = self.data.name+'_1'
         lines = []
-        lines.append("{} : entity work.{}".format(inst_name, self.name))
-        if self.if_parameters:
+        lines.append("{} : entity work.{}".format(inst_name, self.data.name))
+        if self.data.if_parameters:
             lines.append("generic map (")
             # Put the generics in here.  Join with , and a temp
             # character then split at the temp character.  That
             # should create the lines with semicolons on all but
             # the last.
             gen_strings = []
-            for generic in self.if_parameters:
+            for generic in self.data.if_parameters:
                 gen_strings.append(generic.print_as_genmap())
             gen_strings = ',^'.join(gen_strings).split('^')
             for gen_str in gen_strings:
                 lines.append(gen_str)
             lines.append(")")
-        if self.if_ports:
+        if self.data.if_ports:
             lines.append("port map (")
             # Put the ports in here.  Same as before.
             port_strings = []
-            for port in self.if_ports:
+            for port in self.data.if_ports:
                 # Print as portmap returns a list unlike others
                 for mapping in port.print_as_portmap():
                     port_strings.append(mapping)
@@ -665,31 +613,31 @@ class SVInterface():
         """
         # Construct structure
         lines = []
-        lines.append("component {} is".format(self.name))
-        if self.if_parameters:
+        lines.append("component {} is".format(self.data.name))
+        if self.data.if_parameters:
             lines.append("generic (")
             # Put the generics in here.  Join with ; and a temp
             # character then split at the temp character.  That
             # should create the lines with semicolons on all but
             # the last.
             gen_strings = []
-            for generic in self.if_parameters:
+            for generic in self.data.if_parameters:
                 gen_strings.append(generic.print_as_generic())
             gen_strings = ';^'.join(gen_strings).split('^')
             for gen_str in gen_strings:
                 lines.append(gen_str)
             lines.append(");")
-        if self.if_ports:
+        if self.data.if_ports:
             lines.append("port (")
             # Put the ports in here.  Same as before.
             port_strings = []
-            for port in self.if_ports:
+            for port in self.data.if_ports:
                 port_strings.append(port.print_as_port())
             port_strings = ';^'.join(port_strings).split('^')
             for port_str in port_strings:
                 lines.append(port_str)
             lines.append(");")
-        lines.append("end component {};".format(self.name))
+        lines.append("end component {};".format(self.data.name))
 
         align_block_on_re(lines, ':')
         align_block_on_re(lines, r':\s?(?:in\b|out\b|inout\b|buffer\b)?\s*', 'post')
@@ -705,31 +653,31 @@ class SVInterface():
         """
         # Construct structure
         lines = []
-        lines.append("entity {} is".format(self.name))
-        if self.if_parameters:
+        lines.append("entity {} is".format(self.data.name))
+        if self.data.if_parameters:
             lines.append("generic (")
             # Put the generics in here.  Join with ; and a temp
             # character then split at the temp character.  That
             # should create the lines with semicolons on all but
             # the last.
             gen_strings = []
-            for generic in self.if_parameters:
+            for generic in self.data.if_parameters:
                 gen_strings.append(generic.print_as_generic())
             gen_strings = ';^'.join(gen_strings).split('^')
             for gen_str in gen_strings:
                 lines.append(gen_str)
             lines.append(");")
-        if self.if_ports:
+        if self.data.if_ports:
             lines.append("port (")
             # Put the ports in here.  Same as before.
             port_strings = []
-            for port in self.if_ports:
+            for port in self.data.if_ports:
                 port_strings.append(port.print_as_port())
             port_strings = ';^'.join(port_strings).split('^')
             for port_str in port_strings:
                 lines.append(port_str)
             lines.append(");")
-        lines.append("end entity {};".format(self.name))
+        lines.append("end entity {};".format(self.data.name))
 
         align_block_on_re(lines, ':')
         align_block_on_re(lines, r':\s?(?:in\b|out\b|inout\b|buffer\b)?\s*', 'post')
@@ -744,9 +692,9 @@ class SVInterface():
         is a line with multiple token names on the same line, will
         make copies of that port with the individual token names.
         """
-        if self.if_parameters:
+        if self.data.if_parameters:
             new_generics = []
-            for generic in self.if_parameters:
+            for generic in self.data.if_parameters:
                 if ',' in generic.name:
                     name_list = re.sub(r'\s*,\s*', ',', generic.name).split(',')
                     for name in name_list:
@@ -755,10 +703,10 @@ class SVInterface():
                         new_generics.append(new_generic)
                 else:
                     new_generics.append(generic)
-            self.if_parameters = new_generics
-        if self.if_ports:
+            self.data.if_parameters = new_generics
+        if self.data.if_ports:
             new_ports = []
-            for port in self.if_ports:
+            for port in self.data.if_ports:
                 if ',' in port.name:
                     name_list = re.sub(r'\s*,\s*', ',', port.name).split(',')
                     for name in name_list:
@@ -767,7 +715,7 @@ class SVInterface():
                         new_ports.append(new_port)
                 else:
                     new_ports.append(port)
-            self.if_ports = new_ports
+            self.data.if_ports = new_ports
 
     def reverse(self):
         """
@@ -776,8 +724,8 @@ class SVInterface():
         out and buffer become in
         inout is unchanged.
         """
-        if self.if_ports:
-            for port in self.if_ports:
+        if self.data.if_ports:
+            for port in self.data.if_ports:
                 if port.mode.lower() == 'in':
                     port.mode = 'out'
                 elif port.mode.lower() == 'out' or port.mode.lower() == 'buffer':

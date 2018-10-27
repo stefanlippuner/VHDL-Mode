@@ -11,7 +11,7 @@ from . import vhdl_lang as vhdl
 from . import sv_lang   as sv
 from . import vhdl_util as util
 
-_interface = vhdl.Interface()
+_interface = vhdl.VhdlInterface()
 _sv_interface = sv.SVInterface()
 
 #----------------------------------------------------------------
@@ -35,12 +35,12 @@ class vhdlModeCopyPortsCommand(sublime_plugin.TextCommand):
             check = interface.interface_start(util.line_at_point(self, next_point))
             if check is None:
                 if util.is_top_line(self, next_point):
-                    print('vhdl-mode: Interface not found.')
+                    print('vhdl-mode: VhdlInterface not found.')
                     return None
                 else:
                     next_point = util.move_up(self, next_point)
             else:
-                print('vhdl-mode: Interface beginning found.')
+                print('vhdl-mode: VhdlInterface beginning found.')
                 return self.view.text_point(self.view.rowcol(next_point)[0], check)
 
     def find_end(self, point, interface):
@@ -55,7 +55,7 @@ class vhdlModeCopyPortsCommand(sublime_plugin.TextCommand):
                 else:
                     next_point = util.move_down(self, next_point)
             else:
-                print('vhdl-mode: Interface end found.')
+                print('vhdl-mode: VhdlInterface end found.')
                 return self.view.text_point(self.view.rowcol(next_point)[0], check)
 
     def run(self, edit):
@@ -85,8 +85,7 @@ class vhdlModeCopyPortsCommand(sublime_plugin.TextCommand):
         # with the points.  At this point, all the processing should be
         # in the interface class.
         block = sublime.Region(startpoint, endpoint)
-        _interface.if_string = self.view.substr(block)
-        _interface.parse_block()
+        _interface.parse_block(self.view.substr(block))
 
         # At the very end, move the point back to where we
         # started
@@ -113,12 +112,12 @@ class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
             check = interface.interface_start(util.line_at_point(self, next_point))
             if check is None:
                 if util.is_top_line(self, next_point):
-                    print('vhdl-mode: Interface not found.')
+                    print('vhdl-mode: VhdlInterface not found.')
                     return None
                 else:
                     next_point = util.move_up(self, next_point)
             else:
-                print('vhdl-mode: Interface beginning found.') 
+                print('vhdl-mode: VhdlInterface beginning found.')
                 return self.view.text_point(self.view.rowcol(next_point)[0], check)
 
     def find_end(self, point, interface):
@@ -133,7 +132,7 @@ class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
                 else:
                     next_point = util.move_down(self, next_point)
             else:
-                print('vhdl-mode: Interface end found.')
+                print('vhdl-mode: VhdlInterface end found.')
                 return self.view.text_point(self.view.rowcol(next_point)[0], check)
 
     def run(self, edit):
@@ -276,9 +275,9 @@ class vhdlModePasteAsTestbenchCommand(sublime_plugin.WindowCommand):
 
         tb_view = self.window.new_file()
         tb_view.assign_syntax('Packages/VHDL Mode/Syntax/VHDL.sublime-syntax')
-        tb_view.set_name('{}_tb.vhd'.format(_interface.name))
+        tb_view.set_name('{}_tb.vhd'.format(_interface.name()))
 
-        entity_name = '{}_tb'.format(_interface.name)
+        entity_name = '{}_tb'.format(_interface.name())
         signals_str = _interface.signals()
         constants_str = _interface.constants()
         instance_str = _interface.instance(name="DUT")

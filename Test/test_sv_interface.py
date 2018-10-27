@@ -40,23 +40,23 @@ class TestSVInterface(TestCase):
 
         interface.parse_block('module m (a,b,c);\ninput int a,b;\noutput reg [3:0] c;\n// ...\nendmodule')
 
-        self.assertEqual([], interface.if_parameters, 'trivial param')
-        self.assertEqual(3, len(interface.if_ports), 'trivial port count')
+        self.assertEqual([], interface.data.if_parameters, 'trivial param')
+        self.assertEqual(3, len(interface.data.if_ports), 'trivial port count')
 
-        self.assertEqual('a',           interface.if_ports[0].name)
-        self.assertEqual('input',       interface.if_ports[0].mode)
-        self.assertEqual('int',         interface.if_ports[0].type)
-        self.assertEqual(True,          interface.if_ports[0].type)
+        self.assertEqual('a',           interface.data.if_ports[0].name)
+        self.assertEqual('input',       interface.data.if_ports[0].mode)
+        self.assertEqual('int',         interface.data.if_ports[0].type)
+        self.assertEqual(True,          interface.data.if_ports[0].type)
 
-        self.assertEqual('b',           interface.if_ports[1].name)
-        self.assertEqual('input',       interface.if_ports[1].mode)
-        self.assertEqual('int',         interface.if_ports[1].type)
-        self.assertEqual(True,          interface.if_ports[1].type)
+        self.assertEqual('b',           interface.data.if_ports[1].name)
+        self.assertEqual('input',       interface.data.if_ports[1].mode)
+        self.assertEqual('int',         interface.data.if_ports[1].type)
+        self.assertEqual(True,          interface.data.if_ports[1].type)
 
-        self.assertEqual('c',           interface.if_ports[2].name)
-        self.assertEqual('output',      interface.if_ports[2].mode)
-        self.assertEqual('reg [3:0]',   interface.if_ports[2].type)
-        self.assertEqual(True,          interface.if_ports[2].type)
+        self.assertEqual('c',           interface.data.if_ports[2].name)
+        self.assertEqual('output',      interface.data.if_ports[2].mode)
+        self.assertEqual('reg [3:0]',   interface.data.if_ports[2].type)
+        self.assertEqual(True,          interface.data.if_ports[2].type)
 
     def test_signals(self):
         self.fail()
