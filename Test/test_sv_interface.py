@@ -59,7 +59,21 @@ class TestSVInterface(TestCase):
         self.assertEqual('a b', interface.strip_whitespace('a      \tb'), 'words 0')
         self.assertEqual('a b', interface.strip_whitespace('a      \nb'), 'words 1')
 
-    def test_parse_block(self):
+    def test_parse_block_param(self):
+        from VHDLMode.sv_lang import SVInterface
+        interface = SVInterface()
+
+        data = interface.parse_block(
+            """module m
+            #(parameter a = 5, parameter type b = int)            
+            (input int a, output int b, input logic c);
+            // ...
+            endmodule""")
+
+        self.assertEqual(2, len(data.if_generics))
+        self.assertEqual(3, len(data.if_ports))
+
+    def test_parse_block_body(self):
         from VHDLMode.sv_lang import SVInterface
         interface = SVInterface()
 

@@ -11,7 +11,7 @@ from . import vhdl_lang as vhdl
 from . import sv_lang   as sv
 from . import vhdl_util as util
 
-_interface = vhdl.VhdlInterface()
+_vhdl_interface = vhdl.VhdlInterface()
 _sv_interface = sv.SVInterface()
 
 #----------------------------------------------------------------
@@ -59,7 +59,7 @@ class vhdlModeCopyPortsCommand(sublime_plugin.TextCommand):
                 return self.view.text_point(self.view.rowcol(next_point)[0], check)
 
     def run(self, edit):
-        global _interface
+        global _vhdl_interface
 
         # Save the starting point location.  In the case of a
         # multi-selection, save point A of the first region.
@@ -69,13 +69,13 @@ class vhdlModeCopyPortsCommand(sublime_plugin.TextCommand):
         original_point = region.begin()
 
         # Search for the starting entity string.
-        startpoint = self.find_start(original_point, _interface)
+        startpoint = self.find_start(original_point, _vhdl_interface)
         if startpoint is None:
             util.set_cursor(self, original_point)
             return
 
         # Search for the endpoint based on the start point.
-        endpoint = self.find_end(startpoint, _interface)
+        endpoint = self.find_end(startpoint, _vhdl_interface)
         if endpoint is None:
             util.set_cursor(self, original_point)
             return
@@ -85,13 +85,17 @@ class vhdlModeCopyPortsCommand(sublime_plugin.TextCommand):
         # with the points.  At this point, all the processing should be
         # in the interface class.
         block = sublime.Region(startpoint, endpoint)
-        _interface.parse_block(self.view.substr(block))
+        _vhdl_interface.parse_block(self.view.substr(block))
+
+        # Copy the data to the SV Interface class
+        _sv_interface.data = _vhdl_interface.data
 
         # At the very end, move the point back to where we
         # started
         util.set_cursor(self, original_point)
 
-#----------------------------------------------------------------
+
+# ----------------------------------------------------------------
 class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
     """
     The copy ports command requires the user to have placed the
@@ -169,6 +173,9 @@ class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
         #print("Module port: " + _sv_interface.if_string)
         _sv_interface.parse_block(self.view.substr(block))
 
+        # Copy the data to the VHDL Interface class
+        _vhdl_interface.data = _sv_interface.data
+
         # At the very end, move the point back to where we
         # started
         util.set_cursor(self, original_point)
@@ -181,7 +188,7 @@ class vhdlModePasteAsSignalCommand(sublime_plugin.TextCommand):
     signals (ports only, not generics.)
     """
     def run(self, edit):
-        global _interface
+        global _vhdl_interface
         # Get the current point location.
         region = self.view.sel()[0]
         original_point = region.begin()
@@ -191,7 +198,7 @@ class vhdlModePasteAsSignalCommand(sublime_plugin.TextCommand):
 
         lines = []
         # Construct structure and insert
-        block_str = _interface.signals()
+        block_str = _vhdl_interface.signals()
         if block_str is not None:
             num_chars = self.view.insert(edit, next_point, block_str)
             print('vhdl-mode: Inserted interface as signal(s).')
@@ -214,7 +221,7 @@ class vhdlModePasteAsComponentCommand(sublime_plugin.TextCommand):
         # Move to the beginning of the line the point is on.
         next_point = util.move_to_bol(self, original_point)
 
-        block_str = _interface.component()
+        block_str = _vhdl_interface.component()
         num_chars = self.view.insert(edit, next_point, block_str)
         print('vhdl-mode: Inserted interface as component.')
 
@@ -234,7 +241,7 @@ class vhdlModePasteAsEntityCommand(sublime_plugin.TextCommand):
         # Move to the beginning of the line the point is on.
         next_point = util.move_to_bol(self, original_point)
 
-        block_str = _interface.entity()
+        block_str = _vhdl_interface.entity()
         num_chars = self.view.insert(edit, next_point, block_str)
         print('vhdl-mode: Inserted interface as entity.')
 
@@ -258,7 +265,7 @@ class vhdlModePasteAsInstanceCommand(sublime_plugin.TextCommand):
 
         # Construct structure.  Get the file structure.
         instances = util.scan_instantiations(self)
-        block_str = _interface.instance(instances=instances)
+        block_str = _vhdl_interface.instance(instances=instances)
         num_chars = self.view.insert(edit, next_point, block_str)
         print('vhdl-mode: Inserted interface as instance.')
 
@@ -277,12 +284,12 @@ class vhdlModePasteAsTestbenchCommand(sublime_plugin.WindowCommand):
 
         tb_view = self.window.new_file()
         tb_view.assign_syntax('Packages/VHDL Mode/Syntax/VHDL.sublime-syntax')
-        tb_view.set_name('{}_tb.vhd'.format(_interface.name()))
+        tb_view.set_name('{}_tb.vhd'.format(_vhdl_interface.name()))
 
-        entity_name = '{}_tb'.format(_interface.name())
-        signals_str = _interface.signals()
-        constants_str = _interface.constants()
-        instance_str = _interface.instance(name="DUT")
+        entity_name = '{}_tb'.format(_vhdl_interface.name())
+        signals_str = _vhdl_interface.signals()
+        constants_str = _vhdl_interface.constants()
+        instance_str = _vhdl_interface.instance(name="DUT")
 
         # Inserting template/snippet
         tb_view.run_command("insert_snippet",
@@ -305,8 +312,8 @@ class vhdlModeFlattenPortsCommand(sublime_plugin.TextCommand):
     onto their own lines.
     """
     def run(self, edit):
-        global _interface
-        _interface.flatten()
+        global _vhdl_interface
+        _vhdl_interface.flatten()
         print('vhdl-mode: Flattening ports for next paste.')
 
 #----------------------------------------------------------------
@@ -317,6 +324,6 @@ class vhdlModeReversePortsCommand(sublime_plugin.TextCommand):
     the ports.
     """
     def run(self, edit):
-        global _interface
-        _interface.reverse()
+        global _vhdl_interface
+        _vhdl_interface.reverse()
         print('vhdl-mode: Reversing ports for next paste.')

@@ -9,6 +9,7 @@
 """
 import re
 import copy
+
 from . import common_lang
 
 _debug = True
@@ -323,35 +324,50 @@ class SvParameter:
     @staticmethod
     def parse_str(gen_str):
         """Attempts to extract the information from a generic interface."""
-        data = common_lang.Port()
+        data = common_lang.Generic()
 
-        # Right now I'm going to punt.  There are so many variations
-        # on these that it's difficult to write a RE for it.  Also
-        # there are few ways to have to rewrite it.  We will extract
-        # a name, and then a type string (which may include defaults)
-        parameter_type_patter = r'(?P<ptype>parameter|localparam)\s+(?P<type>\S+?)\s+(?P<name>\S+?)\s*(?:=)\s*(?P<assignment>.*)'
-        parameter_pattern = r'(?P<ptype>parameter|localparam)\s+(?P<name>\S+?)\s*(?:=)\s*(?P<assignment>.*)'
-        gp = re.compile(parameter_pattern, re.IGNORECASE)
-        gpt = re.compile(parameter_type_patter, re.IGNORECASE)
-        s = re.search(gp, gen_str)
-        st = re.search(gpt, gen_str)
-        if st:
-            data.name = st.group('name')
-            # Sometimes the type has a trailing space.  Eliminating it.
-            data.type = st.group('type')
-            data.assignment = st.group('assignment')
-            data.success = True
-        elif s:
-            data.name = s.group('name')
-            data.type = 'int' # this should actually be deducted from the default, but ...
-            data.assignment = s.group('assignment')
+        # There a million different options to specify parameters in SV. We
+        # only support a reasonable subset of those. For instance information
+        # propagation to the following parameters is ignored
+
+        # In a first step, we extract the keyword (ptype) and the default
+        # assignment. This is non-optional
+        core_pattern = r'(?P<ptype>parameter type|parameter)\s*(?P<core>.*?)\s*=\s*(?P<default>.*?)$'
+        core_s = re.search(re.compile(core_pattern, re.IGNORECASE), gen_str)
+        if core_s:
+
+            # Store the kind of parameter (value or type)
+            if core_s.group('ptype') == 'parameter type':
+                data.kind = common_lang.GenericKind.TYPE
+            else:
+                data.kind = common_lang.GenericKind.VALUE
+
+            # Then store the default assignment
+            data.default_value = core_s.group('default')
+
+            # Proceed with the rest of the string
+            core_str = core_s.group('core')
+        else:
+            data.success = False
+            return
+
+        type_pattern = r'^(?P<type>.*)\s+(?P<name>.*?)$'
+        type_s = re.search(re.compile(type_pattern, re.IGNORECASE), core_str)
+
+        if type_s:
+            data.type = type_s.group('type')
+            data.name = type_s.group('name')
             data.success = True
         else:
-            print('vhdl-mode: Could not parse generic string: ' + gen_str + '.')
-            data.success = False
+            data.type = 'int'
+            data.name = core_str
+            if len(core_str) > 0:
+                data.success = True
 
         if data.success:
-            debug("parameter name: " + data.name + ", type: " + data.type + ", assignment: " + data.assignment)
+            debug("parameter name: " + data.name + ", type: " + data.type + ", assignment: " + data.default_value)
+        else:
+            print('vhdl-mode: Could not parse generic string: ' + gen_str + '.')
 
         return data
 
@@ -399,7 +415,7 @@ class SVInterface:
         self.data.type = ""
         self.data.if_string = ""
         self.data.if_ports = []
-        self.data.if_parameters = []
+        self.data.if_generics = []
 
     def name(self):
         return self.data.name
@@ -466,7 +482,7 @@ class SVInterface:
         port sections and then calls individual parsing routines."""
         # Initialize things.
         self.data.if_ports = []
-        self.data.if_parameters = []
+        self.data.if_generics = []
 
         # Now checking for the existence of generic and port zones.
         # Split into generic string and port strings and then parse
@@ -500,7 +516,7 @@ class SVInterface:
             for item in parameter_list:
                 parameter = SvParameter.parse_str(item)
                 if parameter.success:
-                    self.data.if_parameters.append(parameter)
+                    self.data.if_generics.append(parameter)
         else:
             print('vhdl-mode: No parameters found.')
 
@@ -548,8 +564,8 @@ class SVInterface:
         listed as constants.
         """
         lines = []
-        if self.data.if_parameters:
-            for generic in self.data.if_parameters:
+        if self.data.if_generics:
+            for generic in self.data.if_generics:
                 lines.append(SvParameter.print_as_constant(generic) + ';')
             align_block_on_re(lines, r':')
             align_block_on_re(lines, r':=')
@@ -577,14 +593,14 @@ class SVInterface:
             inst_name = self.data.name+'_1'
         lines = []
         lines.append("{} : entity work.{}".format(inst_name, self.data.name))
-        if self.data.if_parameters:
+        if self.data.if_generics:
             lines.append("generic map (")
             # Put the generics in here.  Join with , and a temp
             # character then split at the temp character.  That
             # should create the lines with semicolons on all but
             # the last.
             gen_strings = []
-            for generic in self.data.if_parameters:
+            for generic in self.data.if_generics:
                 gen_strings.append(SvParameter.print_as_genmap(generic))
             gen_strings = ',^'.join(gen_strings).split('^')
             for gen_str in gen_strings:
@@ -616,14 +632,14 @@ class SVInterface:
         # Construct structure
         lines = []
         lines.append("component {} is".format(self.data.name))
-        if self.data.if_parameters:
+        if self.data.if_generics:
             lines.append("generic (")
             # Put the generics in here.  Join with ; and a temp
             # character then split at the temp character.  That
             # should create the lines with semicolons on all but
             # the last.
             gen_strings = []
-            for generic in self.data.if_parameters:
+            for generic in self.data.if_generics:
                 gen_strings.append(SvParameter.print_as_generic(generic))
             gen_strings = ';^'.join(gen_strings).split('^')
             for gen_str in gen_strings:
@@ -656,14 +672,14 @@ class SVInterface:
         # Construct structure
         lines = []
         lines.append("entity {} is".format(self.data.name))
-        if self.data.if_parameters:
+        if self.data.if_generics:
             lines.append("generic (")
             # Put the generics in here.  Join with ; and a temp
             # character then split at the temp character.  That
             # should create the lines with semicolons on all but
             # the last.
             gen_strings = []
-            for generic in self.data.if_parameters:
+            for generic in self.data.if_generics:
                 gen_strings.append(SvParameter.print_as_generic(generic))
             gen_strings = ';^'.join(gen_strings).split('^')
             for gen_str in gen_strings:
@@ -694,9 +710,9 @@ class SVInterface:
         is a line with multiple token names on the same line, will
         make copies of that port with the individual token names.
         """
-        if self.data.if_parameters:
+        if self.data.if_generics:
             new_generics = []
-            for generic in self.data.if_parameters:
+            for generic in self.data.if_generics:
                 if ',' in generic.name:
                     name_list = re.sub(r'\s*,\s*', ',', generic.name).split(',')
                     for name in name_list:
@@ -705,7 +721,7 @@ class SVInterface:
                         new_generics.append(new_generic)
                 else:
                     new_generics.append(generic)
-            self.data.if_parameters = new_generics
+            self.data.if_generics = new_generics
         if self.data.if_ports:
             new_ports = []
             for port in self.data.if_ports:

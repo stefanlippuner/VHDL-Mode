@@ -19,6 +19,11 @@ class Port:
         self.success = False
 
 
+class GenericKind:
+    VALUE = 0
+    TYPE = 1
+
+
 class Generic:
     """"
     Storage class for generics / parameters
@@ -26,6 +31,8 @@ class Generic:
     def __init__(self):
         self.name = ""
         self.type = ""
+        self.kind = GenericKind.VALUE
+        self.default_value = ""
         self.success = False
 
 
