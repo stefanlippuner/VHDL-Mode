@@ -18,6 +18,13 @@ class Port:
         self.type = ""
         self.success = False
 
+    def __eq__(self, other):
+        return (isinstance(other, Port) and
+                self.name == other.name and
+                self.mode == other.mode and
+                self.type == other.type and
+                self.success == other.success)
+
 
 class GenericKind:
     VALUE = 0
@@ -35,6 +42,14 @@ class Generic:
         self.default_value = ""
         self.success = False
 
+    def __eq__(self, other):
+        return (isinstance(other, Generic) and
+                self.name == other.name and
+                self.type == other.type and
+                self.kind == other.kind and
+                self.default_value == other.default_value and
+                self.success == other.success)
+
 
 class Interface:
     """
@@ -46,3 +61,10 @@ class Interface:
         self.if_string = ""
         self.if_ports = []
         self.if_generics = []
+
+    def __eq__(self, other):
+        return (isinstance(other, Interface) and
+                self.name == other.name and
+                self.type == other.type and
+                self.if_ports == other.if_ports and
+                self.if_generics == other.if_generics)

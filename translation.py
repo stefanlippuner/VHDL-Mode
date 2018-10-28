@@ -14,33 +14,69 @@ import re
 
 class Translation:
 
-    @staticmethod
-    def interface_vhdl_to_sv(if_vhdl: Interface):
-        return if_vhdl
+    @classmethod
+    def interface_vhdl_to_sv(cls, if_vhdl: Interface):
+        """Translates an entire interfaces from VHDL to SV"""
+        if_sv = if_vhdl
 
-    @staticmethod
-    def interface_sv_to_vhdl(if_sv: Interface):
+        # Translate generics
+        for i in range(0, len(if_vhdl.if_generics)):
+            if_sv.if_generics[i] = cls.generic_vhdl_to_sv(if_vhdl.if_generics[i])
+
+        # Translate ports
+        for i in range(0, len(if_vhdl.if_ports)):
+            if_sv.if_ports[i] = cls.port_vhdl_to_sv(if_vhdl.if_ports[i])
+
         return if_sv
 
-    @staticmethod
-    def generic_sv_to_vhdl(gen_sv: Generic):
-        return gen_sv
+    @classmethod
+    def interface_sv_to_vhdl(cls, if_sv: Interface):
+        """Translates an entire interfaces from SV to VHDL"""
+        if_vhdl = if_sv
 
-    @staticmethod
-    def generic_vhdl_to_sv(gen_vhdl: Generic):
+        # Translate generics
+        for i in range(0, len(if_sv.if_generics)):
+            if_vhdl.if_generics[i] = cls.generic_sv_to_vhdl(if_sv.if_generics[i])
+
+        # Translate ports
+        for i in range(0, len(if_sv.if_ports)):
+            if_vhdl.if_ports[i] = cls.port_sv_to_vhdl(if_sv.if_ports[i])
+
+        return if_vhdl
+
+    @classmethod
+    def generic_sv_to_vhdl(cls, gen_sv: Generic):
+        """Translates a generic from SV to VHDL"""
+        gen_vhdl = gen_sv
+        gen_vhdl.type = cls.type_sv_to_vhdl(gen_sv.type)
         return gen_vhdl
 
-    @staticmethod
-    def port_sv_to_vhdl(port_sv: Port):
+    @classmethod
+    def generic_vhdl_to_sv(cls, gen_vhdl: Generic):
+        """Translates a generic from VHDL to SV"""
+        gen_sv = gen_vhdl
+        gen_sv.type = cls.type_vhdl_to_sv(gen_vhdl.type)
+        return gen_sv
+
+    @classmethod
+    def port_sv_to_vhdl(cls, port_sv: Port):
+        """Translates a port from SV to VHDL"""
+        port_vhdl = port_sv
+        port_vhdl.type = cls.type_sv_to_vhdl(port_sv.type)
+        port_vhdl.mode = cls.mode_sv_to_vhdl(port_sv.mode)
+        return port_vhdl
+
+    @classmethod
+    def port_vhdl_to_sv(cls, port_vhdl: Port):
+        """Translates a port from VHDL to SV"""
+        port_sv = port_vhdl
+        port_sv.type = cls.type_vhdl_to_sv(port_vhdl.type)
+        port_sv.mode = cls.mode_vhdl_to_sv(port_vhdl.mode)
         return port_sv
 
     @staticmethod
-    def port_vhdl_to_sv(port_vhdl: Port):
-        return port_vhdl
-
-    @staticmethod
     def mode_sv_to_vhdl(mode_sv: str):
-        """"Translates the mode (direction) of a port from SV to VHDL"""
+        """Translates the mode (direction) of a port from SV to VHDL"""
 
         mode_table = {
             'input': 'in',
