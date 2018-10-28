@@ -245,6 +245,9 @@ class SvPort:
         """Searches a string for the port fields."""
         data = common_lang.Port()
 
+        # Strip any leading / trailing whitespace
+        port_str = port_str.strip()
+
         # In a first step, we look for the (optional) port direction
         dir_pattern = r'(?P<dir>input|output|inout?)\s+'
         s_dir = re.search(re.compile(dir_pattern, re.IGNORECASE), port_str)
@@ -325,6 +328,9 @@ class SvParameter:
     def parse_str(gen_str):
         """Attempts to extract the information from a generic interface."""
         data = common_lang.Generic()
+
+        # Strip any leading / trailing whitespace
+        gen_str = gen_str.strip()
 
         # There a million different options to specify parameters in SV. We
         # only support a reasonable subset of those. For instance information

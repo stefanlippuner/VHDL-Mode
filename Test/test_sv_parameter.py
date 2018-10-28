@@ -28,6 +28,11 @@ class TestSvParameter(TestCase):
         self.assertEqual(common_lang.GenericKind.VALUE, d.kind)
         self.assertEqual('bar', d.name)
 
+        d = p.parse_str(' parameter bar=8 ')
+        self.assertEqual(True, d.success)
+        self.assertEqual(common_lang.GenericKind.VALUE, d.kind)
+        self.assertEqual('bar', d.name)
+
         d = p.parse_str('parameter a = 1<<6')
         self.assertEqual(True, d.success)
         self.assertEqual(common_lang.GenericKind.VALUE, d.kind)

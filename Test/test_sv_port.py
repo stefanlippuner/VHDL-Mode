@@ -32,3 +32,9 @@ class TestSVPort(TestCase):
         self.assertEqual('bar', port.name)
         self.assertEqual('logic [5:0]', port.type)
         self.assertEqual('output', port.mode)
+
+        port = SvPort.parse_str(' output logic [3:0] debug_o ')
+        self.assertEqual('debug_o', port.name)
+        self.assertEqual('logic [3:0]', port.type)
+        self.assertEqual('output', port.mode)
+
