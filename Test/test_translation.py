@@ -19,6 +19,21 @@ class TestTranslation(TestCase):
 
     def test_port_vhdl_to_sv(self):
         self.fail()
+        self.fail()
+
+    def test_mode_sv_to_vhdl(self):
+        from VHDLMode.translation import Translation
+        self.assertEqual('in', Translation.mode_sv_to_vhdl('input'))
+        self.assertEqual('out', Translation.mode_sv_to_vhdl('output'))
+        self.assertEqual('inout', Translation.mode_sv_to_vhdl('inout'))
+        self.assertEqual('ERR', Translation.mode_sv_to_vhdl('foo'))
+
+    def test_mode_vhdl_to_sv(self):
+        from VHDLMode.translation import Translation
+        self.assertEqual('input', Translation.mode_vhdl_to_sv('in'))
+        self.assertEqual('output', Translation.mode_vhdl_to_sv('out'))
+        self.assertEqual('inout', Translation.mode_vhdl_to_sv('inout'))
+        self.assertEqual('ERR', Translation.mode_vhdl_to_sv('bar'))
 
     def test_type_sv_to_vhdl_scalar(self):
         from VHDLMode.translation import Translation
@@ -27,6 +42,7 @@ class TestTranslation(TestCase):
         self.assertEqual('std_logic', Translation.type_sv_to_vhdl('reg'))
         self.assertEqual('std_logic', Translation.type_sv_to_vhdl('logic'))
         self.assertEqual('std_logic', Translation.type_sv_to_vhdl('bit'))
+        self.assertEqual('ERR', Translation.type_sv_to_vhdl('fubar'))
 
     def test_type_sv_to_vhdl_vector(self):
         from VHDLMode.translation import Translation
@@ -42,6 +58,7 @@ class TestTranslation(TestCase):
         self.assertEqual('logic', Translation.type_vhdl_to_sv('bit'))
         self.assertEqual('logic', Translation.type_vhdl_to_sv('std_logic'))
         self.assertEqual('logic', Translation.type_vhdl_to_sv('std_ulogic'))
+        self.assertEqual('ERR', Translation.type_vhdl_to_sv('foobar'))
 
     def test_type_vhdl_to_sv_vector(self):
         from VHDLMode.translation import Translation
