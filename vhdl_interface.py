@@ -139,6 +139,8 @@ class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
         global _sv_interface
 
         print("SV read port")
+        print('__name__: ' + __name__ )
+        print('__file__: ' + __file__)
 
         # Save the starting point location.  In the case of a
         # multi-selection, save point A of the first region.

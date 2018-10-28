@@ -12,7 +12,7 @@ import collections
 import copy
 import sublime
 import ruamel.yaml
-import common_lang
+from . import common_lang
 
 _debug = False
 
@@ -792,7 +792,7 @@ class VhdlInterface:
         # Construct structure and insert
         if self.data.if_ports:
             for port in self.data.if_ports:
-                lines.append(port.print_as_signal() + ';')
+                lines.append(VhdlPort.print_as_signal(port) + ';')
             align_block_on_re(lines, r':')
             indent_vhdl(lines, 1)
             return '\n'.join(lines)
@@ -807,7 +807,7 @@ class VhdlInterface:
         lines = []
         if self.data.if_generics:
             for generic in self.data.if_generics:
-                lines.append(generic.print_as_constant() + ';')
+                lines.append(VhdlGeneric.print_as_constant(generic) + ';')
             align_block_on_re(lines, r':')
             align_block_on_re(lines, r':=')
             indent_vhdl(lines, 1)
@@ -842,7 +842,7 @@ class VhdlInterface:
             # the last.
             gen_strings = []
             for generic in self.data.if_generics:
-                gen_strings.append(generic.print_as_genmap())
+                gen_strings.append(VhdlGeneric.print_as_genmap(generic))
             gen_strings = ',^'.join(gen_strings).split('^')
             for gen_str in gen_strings:
                 lines.append(gen_str)
@@ -853,7 +853,7 @@ class VhdlInterface:
             port_strings = []
             for port in self.data.if_ports:
                 # Print as portmap returns a list unlike others
-                for mapping in port.print_as_portmap():
+                for mapping in VhdlPort.print_as_portmap(port):
                     port_strings.append(mapping)
             port_strings = ',^'.join(port_strings).split('^')
             for port_str in port_strings:
@@ -881,7 +881,7 @@ class VhdlInterface:
             # the last.
             gen_strings = []
             for generic in self.data.if_generics:
-                gen_strings.append(generic.print_as_generic())
+                gen_strings.append(VhdlGeneric.print_as_generic(generic))
             gen_strings = ';^'.join(gen_strings).split('^')
             for gen_str in gen_strings:
                 lines.append(gen_str)
@@ -891,7 +891,7 @@ class VhdlInterface:
             # Put the ports in here.  Same as before.
             port_strings = []
             for port in self.data.if_ports:
-                port_strings.append(port.print_as_port())
+                port_strings.append(VhdlPort.print_as_port(port))
             port_strings = ';^'.join(port_strings).split('^')
             for port_str in port_strings:
                 lines.append(port_str)
@@ -921,7 +921,7 @@ class VhdlInterface:
             # the last.
             gen_strings = []
             for generic in self.data.if_generics:
-                gen_strings.append(generic.print_as_generic())
+                gen_strings.append(VhdlGeneric.print_as_generic(generic))
             gen_strings = ';^'.join(gen_strings).split('^')
             for gen_str in gen_strings:
                 lines.append(gen_str)
@@ -931,7 +931,7 @@ class VhdlInterface:
             # Put the ports in here.  Same as before.
             port_strings = []
             for port in self.data.if_ports:
-                port_strings.append(port.print_as_port())
+                port_strings.append(VhdlPort.print_as_port(port))
             port_strings = ';^'.join(port_strings).split('^')
             for port_str in port_strings:
                 lines.append(port_str)

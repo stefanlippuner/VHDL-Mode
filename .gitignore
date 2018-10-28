@@ -11,3 +11,4 @@ CODE_OF_CONDUCT\.html
 
 CONTRIBUTING\.html
 /.idea
+__pycache__
