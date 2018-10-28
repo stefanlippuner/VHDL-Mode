@@ -407,7 +407,7 @@ class SVInterface:
     def interface_start(self, line: str):
         """Attempts to identify the start of an interface."""
         # Checks for module starting lines
-        head_pattern = r"(?P<type>module|macromodule)\s*(?P<name>\w*)"
+        head_pattern = r"(^|\s)(?P<type>module|macromodule)\s*(?P<name>\w*)"
         p = re.compile(head_pattern, re.IGNORECASE)
         s = re.search(p, line)
         # debug(line)

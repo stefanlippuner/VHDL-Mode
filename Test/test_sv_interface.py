@@ -4,10 +4,36 @@ import unittest
 
 class TestSVInterface(TestCase):
     def test_interface_start(self):
-        self.fail()
+        from VHDLMode.sv_lang import SVInterface
+
+        interface = SVInterface()
+        a = interface.interface_start('a b')
+        self.assertIsNone(interface.interface_start('a b'))
+        self.assertIsNone(interface.interface_start('entity'))
+        self.assertIsNone(interface.interface_start('endmodule'))
+
+        start = interface.interface_start('module foo')
+        self.assertIsNotNone(start)
+        self.assertEqual('foo', interface.name())
+
+        start = interface.interface_start('     module two (a, bar)')
+        self.assertIsNotNone(start)
+        self.assertEqual('two', interface.name())
 
     def test_interface_end(self):
-        self.fail()
+        from VHDLMode.sv_lang import SVInterface
+
+        interface = SVInterface()
+        a = interface.interface_end('a b')
+        self.assertIsNone(interface.interface_end('a b'))
+        self.assertIsNone(interface.interface_end('entity'))
+        self.assertIsNone(interface.interface_end('module foo'))
+
+        start = interface.interface_end('endmodule foo')
+        self.assertIsNotNone(start)
+
+        start = interface.interface_end('     endmodule // two')
+        self.assertIsNotNone(start)
 
     def test_strip_comments(self):
 
@@ -77,6 +103,3 @@ class TestSVInterface(TestCase):
 
     def test_reverse(self):
         self.fail()
-
-if __name__ == '__main__':
-    unittest.main()
