@@ -124,22 +124,22 @@ class TestSVInterface(TestCase):
         self.assertEqual(True,          interface.data.if_ports[3].success)
 
     def test_signals(self):
-        self.fail()
+        self.skipTest('Not implemented')
 
     def test_constants(self):
-        self.fail()
+        self.skipTest('Not implemented')
 
     def test_instance(self):
-        self.fail()
+        self.skipTest('Not implemented')
 
     def test_component(self):
-        self.fail()
+        self.skipTest('Not implemented')
 
     def test_entity(self):
-        self.fail()
+        self.skipTest('Not implemented')
 
     def test_flatten(self):
-        self.fail()
+        self.skipTest('Not implemented')
 
     def test_reverse(self):
-        self.fail()
+        self.skipTest('Not implemented')

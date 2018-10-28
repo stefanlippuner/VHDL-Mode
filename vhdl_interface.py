@@ -117,12 +117,12 @@ class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
             check = interface.interface_start(util.line_at_point(self, next_point))
             if check is None:
                 if util.is_top_line(self, next_point):
-                    print('vhdl-mode: VhdlInterface not found.')
+                    print('vhdl-mode: SVInterface not found.')
                     return None
                 else:
                     next_point = util.move_up(self, next_point)
             else:
-                print('vhdl-mode: VhdlInterface beginning found.')
+                print('vhdl-mode: SVInterface beginning found.')
                 return self.view.text_point(self.view.rowcol(next_point)[0], check)
 
     def find_end(self, point, interface):
@@ -132,20 +132,16 @@ class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
             check = interface.interface_end(util.line_at_point(self, next_point))
             if check is None:
                 if util.is_end_line(self, next_point):
-                    print('vhdl-mode: End of interface not found.')
+                    print('vhdl-mode: End of SVInterface not found.')
                     return None
                 else:
                     next_point = util.move_down(self, next_point)
             else:
-                print('vhdl-mode: VhdlInterface end found.')
+                print('vhdl-mode: SVInterface end found.')
                 return self.view.text_point(self.view.rowcol(next_point)[0], check)
 
     def run(self, edit):
         global _sv_interface
-
-        print("SV read port")
-        print('__name__: ' + __name__ )
-        print('__file__: ' + __file__)
 
         # Save the starting point location.  In the case of a
         # multi-selection, save point A of the first region.
@@ -179,7 +175,6 @@ class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
         # At the very end, move the point back to where we
         # started
         util.set_cursor(self, original_point)
-        print("SV read port done")
 
 #----------------------------------------------------------------
 class vhdlModePasteAsSignalCommand(sublime_plugin.TextCommand):

@@ -12,7 +12,7 @@ import copy
 
 from . import common_lang
 
-_debug = True
+_debug = False
 
 
 # ---------------------------------------------------------------------------
@@ -219,7 +219,7 @@ def align_block_on_re(lines, regexp, padside='pre', ignore_comment_lines=True, s
         if s and not comment_check and not banned:
             # If we find a match, record the line and
             # location but do nothing else.
-            #print("Match on Line: {} Start:'{}' Stop:'{}'".\
+            # print("Match on Line: {} Start:'{}' Stop:'{}'".\
             #       format(line_num, lines[line_num][0:s.start()],\
             #              lines[line_num][s.start():]))
             if padside == 'post':
@@ -277,7 +277,7 @@ class SvPort:
                 data.success = False
 
         if data.success:
-            print('port name: ' + data.name + ", mode: " + data.mode + ", type: " + data.type)
+            debug('port name: ' + data.name + ", mode: " + data.mode + ", type: " + data.type)
         else:
             print('vhdl-mode: Could not parse port string: ' + port_str + '.')
 
@@ -547,7 +547,6 @@ class SVInterface:
         body_list = body_str.split(';')
         for body_line in body_list:
             if body_c.search(body_line):
-                print(body_line)
                 port = SvPort.parse_str(body_line)
 
                 # Replace the existing port in the port list with
