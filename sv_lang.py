@@ -268,7 +268,7 @@ class SvPort:
             data.type = s.group('type')
             data.success = True
         else:
-            data.type = 'wire'
+            data.type = 'logic'
 
             if len(port_str) >= 1:
                 data.name = port_str
@@ -493,10 +493,10 @@ class SVInterface:
         # Now checking for the existence of generic and port zones.
         # Split into generic string and port strings and then parse
         # each separately.  Standard demands generic first, then port.
-        parameter_pattern  = re.compile(r'#\s*\((.*?)\)', re.I)
-        port_pattern       = re.compile(r'\((.*?)\)', re.I)
+        parameter_pattern = re.compile(r'#\s*\((.*?)\)', re.I)
+        port_pattern = re.compile(r'\((.*?)\)', re.I)
 
-        parameter_search   = re.search(parameter_pattern, if_string)
+        parameter_search = re.search(parameter_pattern, if_string)
 
         # The parameter declarations comes first
         if parameter_search:
@@ -508,11 +508,14 @@ class SVInterface:
             # debug("New if str: " + if_string)
 
         # Now that all the parameters have been removed, we can look for the ports
-        port_search        = re.search(port_pattern, if_string)
+        port_search = re.search(port_pattern, if_string)
 
         if port_search:
             port_str = Parentheses().extract(if_string[port_search.start():])
+            body_str = re.sub(port_pattern, '', if_string, count=1)
             # debug("VhdlPort str: " + port_str)
+        else:
+            body_str = if_string
 
         # Now parse the two strings and make them into lists
 
@@ -535,6 +538,32 @@ class SVInterface:
                     self.data.if_ports.append(port)
         else:
             print('vhdl-mode: No ports found.')
+
+        # Now we have to parse the body of the module to
+        # find additional definitions
+        body_pattern = r'(?P<dir>input|output|inout?)\s+'
+        body_c = re.compile(body_pattern, re.IGNORECASE)
+
+        body_list = body_str.split(';')
+        for body_line in body_list:
+            if body_c.search(body_line):
+                print(body_line)
+                port = SvPort.parse_str(body_line)
+
+                # Replace the existing port in the port list with
+                # the new port
+                hit = False
+                for i in range(0, len(self.data.if_ports)):
+                    if port.name == self.data.if_ports[i].name:
+                        hit = True
+                        self.data.if_ports[i] = port
+                        break
+
+                if not hit:
+                    print('vhdl-mode: Could not find a port named ' + port.name + ' in the port header.')
+
+
+
 
     def parse_block(self, if_string: str):
         """Top level routine for extracting information out of a

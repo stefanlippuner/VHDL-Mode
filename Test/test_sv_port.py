@@ -12,7 +12,7 @@ class TestSVPort(TestCase):
 
         port = SvPort.parse_str('a')
         self.assertEqual('a', port.name)
-        self.assertEqual('wire', port.type)
+        self.assertEqual('logic', port.type)
         self.assertEqual('inout', port.mode)
 
     def test_parse_str_dir(self):
@@ -21,7 +21,7 @@ class TestSVPort(TestCase):
 
         port = SvPort.parse_str('input foo')
         self.assertEqual('foo', port.name)
-        self.assertEqual('wire', port.type)
+        self.assertEqual('logic', port.type)
         self.assertEqual('input', port.mode)
 
     def test_parse_str_full(self):

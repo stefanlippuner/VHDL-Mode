@@ -111,7 +111,7 @@ class Translation:
     @staticmethod
     def type_sv_to_vhdl(type_sv: str):
         """"Translates the type of a port/generic from SV to VHDL"""
-        pattern_vec = r'(?P<type>.*?)\s+\[(?P<upper>\d+):(?P<lower>\d+)\]'
+        pattern_vec = r'(?P<type>.*?)\s*\[(?P<upper>\d+):(?P<lower>\d+)\]'
         search_vec = re.search(re.compile(pattern_vec, re.IGNORECASE), type_sv)
 
         if search_vec:
@@ -127,6 +127,7 @@ class Translation:
             'reg': 'std_logic',
             'bit': 'std_logic',
             'logic': 'std_logic',
+            '': 'std_logic',
             'integer': 'integer',
             'int': 'integer',
         }

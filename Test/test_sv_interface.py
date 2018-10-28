@@ -77,39 +77,51 @@ class TestSVInterface(TestCase):
         self.assertEqual('int', data.if_generics[1].default_value)
 
         self.assertEqual(3, len(data.if_ports))
-        self.assertEqual('a', data.if_generics[0].name)
-        self.assertEqual('input', data.if_generics[0].mode)
-        self.assertEqual('int', data.if_generics[0].type)
-        self.assertEqual('b', data.if_generics[1].name)
-        self.assertEqual('output', data.if_generics[1].mode)
-        self.assertEqual('int', data.if_generics[1].type)
-        self.assertEqual('c', data.if_generics[2].name)
-        self.assertEqual('input', data.if_generics[2].mode)
-        self.assertEqual('logic', data.if_generics[2].type)
+        self.assertEqual('a', data.if_ports[0].name)
+        self.assertEqual('input', data.if_ports[0].mode)
+        self.assertEqual('int', data.if_ports[0].type)
+        self.assertEqual('b', data.if_ports[1].name)
+        self.assertEqual('output', data.if_ports[1].mode)
+        self.assertEqual('int', data.if_ports[1].type)
+        self.assertEqual('c', data.if_ports[2].name)
+        self.assertEqual('input', data.if_ports[2].mode)
+        self.assertEqual('logic', data.if_ports[2].type)
 
     def test_parse_block_body(self):
         from VHDLMode.sv_lang import SVInterface
         interface = SVInterface()
 
-        interface.parse_block('module m (a,b,c);\ninput int a,b;\noutput reg [3:0] c;\n// ...\nendmodule')
+        interface.parse_block(
+            """module m (a,b,c,d);
+            input int a;
+            input [4:0] b;
+            output reg [3:0] c;
+            input d;
+            // ...
+            endmodule""")
 
-        self.assertEqual([], interface.data.if_parameters, 'trivial param')
-        self.assertEqual(3, len(interface.data.if_ports), 'trivial port count')
+        self.assertEqual([], interface.data.if_generics, 'trivial param')
+        self.assertEqual(4, len(interface.data.if_ports), 'trivial port count')
 
         self.assertEqual('a',           interface.data.if_ports[0].name)
         self.assertEqual('input',       interface.data.if_ports[0].mode)
         self.assertEqual('int',         interface.data.if_ports[0].type)
-        self.assertEqual(True,          interface.data.if_ports[0].type)
+        self.assertEqual(True,          interface.data.if_ports[0].success)
 
         self.assertEqual('b',           interface.data.if_ports[1].name)
         self.assertEqual('input',       interface.data.if_ports[1].mode)
-        self.assertEqual('int',         interface.data.if_ports[1].type)
-        self.assertEqual(True,          interface.data.if_ports[1].type)
+        self.assertEqual('[4:0]',       interface.data.if_ports[1].type)
+        self.assertEqual(True,          interface.data.if_ports[1].success)
 
         self.assertEqual('c',           interface.data.if_ports[2].name)
         self.assertEqual('output',      interface.data.if_ports[2].mode)
         self.assertEqual('reg [3:0]',   interface.data.if_ports[2].type)
-        self.assertEqual(True,          interface.data.if_ports[2].type)
+        self.assertEqual(True,          interface.data.if_ports[2].success)
+
+        self.assertEqual('d',           interface.data.if_ports[3].name)
+        self.assertEqual('input',       interface.data.if_ports[3].mode)
+        self.assertEqual('logic',       interface.data.if_ports[3].type)
+        self.assertEqual(True,          interface.data.if_ports[3].success)
 
     def test_signals(self):
         self.fail()
