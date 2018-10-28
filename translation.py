@@ -10,6 +10,7 @@
 
 from .common_lang import Generic, Interface, Port
 import re
+from copy import deepcopy
 
 
 class Translation:
@@ -17,7 +18,7 @@ class Translation:
     @classmethod
     def interface_vhdl_to_sv(cls, if_vhdl: Interface):
         """Translates an entire interfaces from VHDL to SV"""
-        if_sv = if_vhdl
+        if_sv = deepcopy(if_vhdl)
 
         # Translate generics
         for i in range(0, len(if_vhdl.if_generics)):
@@ -32,7 +33,7 @@ class Translation:
     @classmethod
     def interface_sv_to_vhdl(cls, if_sv: Interface):
         """Translates an entire interfaces from SV to VHDL"""
-        if_vhdl = if_sv
+        if_vhdl = deepcopy(if_sv)
 
         # Translate generics
         for i in range(0, len(if_sv.if_generics)):
@@ -47,21 +48,21 @@ class Translation:
     @classmethod
     def generic_sv_to_vhdl(cls, gen_sv: Generic):
         """Translates a generic from SV to VHDL"""
-        gen_vhdl = gen_sv
+        gen_vhdl = deepcopy(gen_sv)
         gen_vhdl.type = cls.type_sv_to_vhdl(gen_sv.type)
         return gen_vhdl
 
     @classmethod
     def generic_vhdl_to_sv(cls, gen_vhdl: Generic):
         """Translates a generic from VHDL to SV"""
-        gen_sv = gen_vhdl
+        gen_sv = deepcopy(gen_vhdl)
         gen_sv.type = cls.type_vhdl_to_sv(gen_vhdl.type)
         return gen_sv
 
     @classmethod
     def port_sv_to_vhdl(cls, port_sv: Port):
         """Translates a port from SV to VHDL"""
-        port_vhdl = port_sv
+        port_vhdl = deepcopy(port_sv)
         port_vhdl.type = cls.type_sv_to_vhdl(port_sv.type)
         port_vhdl.mode = cls.mode_sv_to_vhdl(port_sv.mode)
         return port_vhdl
@@ -69,7 +70,7 @@ class Translation:
     @classmethod
     def port_vhdl_to_sv(cls, port_vhdl: Port):
         """Translates a port from VHDL to SV"""
-        port_sv = port_vhdl
+        port_sv = deepcopy(port_vhdl)
         port_sv.type = cls.type_vhdl_to_sv(port_vhdl.type)
         port_sv.mode = cls.mode_vhdl_to_sv(port_vhdl.mode)
         return port_sv

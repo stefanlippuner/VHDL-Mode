@@ -6,7 +6,7 @@
  SystemVerilog
 ----------------------------------------------------------------
 """
-
+from copy import deepcopy
 
 class Port:
     """"
@@ -24,6 +24,14 @@ class Port:
                 self.mode == other.mode and
                 self.type == other.type and
                 self.success == other.success)
+
+    def __deepcopy__(self, memodict={}):
+        newone = type(self)()
+        newone.name = self.name
+        newone.mode = self.mode
+        newone.type = self.type
+        newone.success = self.success
+        return newone
 
 
 class GenericKind:
@@ -50,6 +58,15 @@ class Generic:
                 self.default_value == other.default_value and
                 self.success == other.success)
 
+    def __deepcopy__(self, memodict={}):
+        newone = type(self)()
+        newone.name = self.name
+        newone.type = self.type
+        newone.kind = self.kind
+        newone.default_value = self.default_value
+        newone.success = self.success
+        return newone
+
 
 class Interface:
     """
@@ -68,3 +85,12 @@ class Interface:
                 self.type == other.type and
                 self.if_ports == other.if_ports and
                 self.if_generics == other.if_generics)
+
+    def __deepcopy__(self, memodict={}):
+        newone = type(self)()
+        newone.name = self.name
+        newone.type = self.type
+        newone.if_string = self.if_string
+        newone.if_ports = deepcopy(self.if_ports, memodict)
+        newone.if_generics = deepcopy(self.if_generics,memodict)
+        return newone

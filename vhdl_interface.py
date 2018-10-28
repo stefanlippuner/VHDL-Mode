@@ -7,6 +7,7 @@ import re
 import sublime
 import sublime_plugin
 
+from .translation import Translation
 from . import vhdl_lang as vhdl
 from . import sv_lang   as sv
 from . import vhdl_util as util
@@ -59,7 +60,7 @@ class vhdlModeCopyPortsCommand(sublime_plugin.TextCommand):
                 return self.view.text_point(self.view.rowcol(next_point)[0], check)
 
     def run(self, edit):
-        global _vhdl_interface
+        global _vhdl_interface, _sv_interface
 
         # Save the starting point location.  In the case of a
         # multi-selection, save point A of the first region.
@@ -88,7 +89,7 @@ class vhdlModeCopyPortsCommand(sublime_plugin.TextCommand):
         _vhdl_interface.parse_block(self.view.substr(block))
 
         # Copy the data to the SV Interface class
-        _sv_interface.data = _vhdl_interface.data
+        _sv_interface.data = Translation.interface_vhdl_to_sv(_vhdl_interface.data)
 
         # At the very end, move the point back to where we
         # started
@@ -170,11 +171,10 @@ class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
         # with the points.  At this point, all the processing should be
         # in the interface class.
         block = sublime.Region(startpoint, endpoint)
-        #print("Module port: " + _sv_interface.if_string)
         _sv_interface.parse_block(self.view.substr(block))
 
         # Copy the data to the VHDL Interface class
-        _vhdl_interface.data = _sv_interface.data
+        _vhdl_interface.data = Translation.interface_sv_to_vhdl(_sv_interface.data)
 
         # At the very end, move the point back to where we
         # started
