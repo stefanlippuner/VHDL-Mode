@@ -355,7 +355,7 @@ class SvParameter:
             core_str = core_s.group('core')
         else:
             data.success = False
-            return
+            return data
 
         type_pattern = r'^(?P<type>.*)\s+(?P<name>.*?)$'
         type_s = re.search(re.compile(type_pattern, re.IGNORECASE), core_str)

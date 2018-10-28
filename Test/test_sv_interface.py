@@ -71,7 +71,21 @@ class TestSVInterface(TestCase):
             endmodule""")
 
         self.assertEqual(2, len(data.if_generics))
+        self.assertEqual('a', data.if_generics[0].name)
+        self.assertEqual('5', data.if_generics[0].default_value)
+        self.assertEqual('b', data.if_generics[1].name)
+        self.assertEqual('int', data.if_generics[1].default_value)
+
         self.assertEqual(3, len(data.if_ports))
+        self.assertEqual('a', data.if_generics[0].name)
+        self.assertEqual('input', data.if_generics[0].mode)
+        self.assertEqual('int', data.if_generics[0].type)
+        self.assertEqual('b', data.if_generics[1].name)
+        self.assertEqual('output', data.if_generics[1].mode)
+        self.assertEqual('int', data.if_generics[1].type)
+        self.assertEqual('c', data.if_generics[2].name)
+        self.assertEqual('input', data.if_generics[2].mode)
+        self.assertEqual('logic', data.if_generics[2].type)
 
     def test_parse_block_body(self):
         from VHDLMode.sv_lang import SVInterface
