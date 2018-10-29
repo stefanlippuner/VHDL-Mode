@@ -131,6 +131,8 @@ class TestTranslation(TestCase):
         from VHDLMode.translation import Translation
         self.assertEqual('integer', Translation.type_sv_to_vhdl('int'))
         self.assertEqual('integer', Translation.type_sv_to_vhdl('integer'))
+        self.assertEqual('natural', Translation.type_sv_to_vhdl('int unsigned'))
+        self.assertEqual('natural', Translation.type_sv_to_vhdl('integer unsigned'))
         self.assertEqual('std_logic', Translation.type_sv_to_vhdl('reg'))
         self.assertEqual('std_logic', Translation.type_sv_to_vhdl('logic'))
         self.assertEqual('std_logic', Translation.type_sv_to_vhdl('bit'))
@@ -143,12 +145,14 @@ class TestTranslation(TestCase):
         self.assertEqual('std_logic_vector(5 downto 2)', Translation.type_sv_to_vhdl('reg [5:2]'))
         self.assertEqual('std_logic_vector(0 downto 0)', Translation.type_sv_to_vhdl('reg [0:0]'))
         self.assertEqual('std_logic_vector(7 downto 1)', Translation.type_sv_to_vhdl('[7:1]'))
+        self.assertEqual('std_logic_vector(8-1 downto 0)', Translation.type_sv_to_vhdl('reg [8-1:0]'))
+        self.assertEqual('std_logic_vector(PAR-1 downto 0)', Translation.type_sv_to_vhdl('reg [PAR-1:0]'))
 
     def test_type_vhdl_to_sv_scalar(self):
         from VHDLMode.translation import Translation
         self.assertEqual('integer', Translation.type_vhdl_to_sv('integer'))
-        self.assertEqual('integer', Translation.type_vhdl_to_sv('natural'))
-        self.assertEqual('integer', Translation.type_vhdl_to_sv('positive'))
+        self.assertEqual('integer unsigned', Translation.type_vhdl_to_sv('natural'))
+        self.assertEqual('integer unsigned', Translation.type_vhdl_to_sv('positive'))
         self.assertEqual('logic', Translation.type_vhdl_to_sv('bit'))
         self.assertEqual('logic', Translation.type_vhdl_to_sv('std_logic'))
         self.assertEqual('logic', Translation.type_vhdl_to_sv('std_ulogic'))
@@ -159,3 +163,5 @@ class TestTranslation(TestCase):
         self.assertEqual('logic [31:0]', Translation.type_vhdl_to_sv('std_logic_vector(31 downto 0)'))
         self.assertEqual('logic [7:2]', Translation.type_vhdl_to_sv('std_logic_vector(7 downto 2)'))
         self.assertEqual('logic [2:2]', Translation.type_vhdl_to_sv('std_logic_vector(2 downto 2)'))
+        self.assertEqual('logic [8-4:2]', Translation.type_vhdl_to_sv('std_logic_vector(8-4 downto 2)'))
+        self.assertEqual('logic [PAR-4:2]', Translation.type_vhdl_to_sv('std_logic_vector(PAR-4 downto 2)'))

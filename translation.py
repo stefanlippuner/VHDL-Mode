@@ -111,7 +111,7 @@ class Translation:
     @staticmethod
     def type_sv_to_vhdl(type_sv: str):
         """"Translates the type of a port/generic from SV to VHDL"""
-        pattern_vec = r'(?P<type>.*?)\s*\[(?P<upper>\d+):(?P<lower>\d+)\]'
+        pattern_vec = r'(?P<type>.*?)\s*\[(?P<upper>[^\:\]\[]+):(?P<lower>[^\:\]\[]+)\]'
         search_vec = re.search(re.compile(pattern_vec, re.IGNORECASE), type_sv)
 
         if search_vec:
@@ -124,12 +124,14 @@ class Translation:
             trailer_vhdl = ''
 
         type_table = {
-            'reg': 'std_logic',
-            'bit': 'std_logic',
-            'logic': 'std_logic',
-            '': 'std_logic',
-            'integer': 'integer',
-            'int': 'integer',
+            'reg'               : 'std_logic',
+            'bit'               : 'std_logic',
+            'logic'             : 'std_logic',
+            ''                  : 'std_logic',
+            'integer'           : 'integer',
+            'int'               : 'integer',
+            'integer unsigned'  : 'natural',
+            'int unsigned'      : 'natural',
         }
 
         type_vhdl = type_table.get(type_sv)
@@ -142,7 +144,7 @@ class Translation:
     @staticmethod
     def type_vhdl_to_sv(type_vhdl: str):
         """"Translates the type of a port/generic from VHDL to SV"""
-        pattern_vec = r'(?P<type>.*?)_vector\s*\((?P<upper>\d+)\s+downto\s+(?P<lower>\d+)\)'
+        pattern_vec = r'(?P<type>.*?)_vector\s*\((?P<upper>[^\:\]\[]+)\s+downto\s+(?P<lower>[^\:\]\[]+)\)'
         search_vec = re.search(re.compile(pattern_vec, re.IGNORECASE), type_vhdl)
 
         if search_vec:
@@ -155,12 +157,12 @@ class Translation:
             trailer_sv = ''
 
         type_table = {
-            'std_logic': 'logic',
-            'std_ulogic': 'logic',
-            'bit': 'logic',
-            'integer': 'integer',
-            'natural': 'integer',
-            'positive': 'integer',
+            'std_logic'     : 'logic',
+            'std_ulogic'    : 'logic',
+            'bit'           : 'logic',
+            'integer'       : 'integer',
+            'natural'       : 'integer unsigned',
+            'positive'      : 'integer unsigned',
         }
 
         type_sv = type_table.get(type_vhdl)
