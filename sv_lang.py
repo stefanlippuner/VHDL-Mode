@@ -259,6 +259,15 @@ class SvPort:
         else:
             data.mode = 'inout'
 
+        # Then we check for unpacked dimensions
+        up_pattern = r'(?P<prefix>.*?)\s*(?P<unpacked>\[[^\[]*\])$'
+        up_s = re.search(re.compile(up_pattern, re.IGNORECASE), port_str)
+        if up_s:
+            data.unpacked_dims = up_s.group('unpacked')
+            port_str = up_s.group('prefix')
+        else:
+            pass
+
         type_pattern = r'(?P<type>.*?)\s+(?P<name>\S*)$'
         pp = re.compile(type_pattern, re.IGNORECASE)
         s = re.search(pp, port_str)

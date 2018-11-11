@@ -8,6 +8,7 @@
 """
 from copy import deepcopy
 
+
 class Port:
     """"
     Storage class for ports
@@ -16,6 +17,7 @@ class Port:
         self.name = ""
         self.mode = ""
         self.type = ""
+        self.unpacked_dims = ""
         self.success = False
 
     def __eq__(self, other):
@@ -23,6 +25,7 @@ class Port:
                 self.name == other.name and
                 self.mode == other.mode and
                 self.type == other.type and
+                self.unpacked_dims == other.unpacked_dims and
                 self.success == other.success)
 
     def __deepcopy__(self, memodict={}):
@@ -30,6 +33,7 @@ class Port:
         newone.name = self.name
         newone.mode = self.mode
         newone.type = self.type
+        newone.unpacked_dims = self.unpacked_dims
         newone.success = self.success
         return newone
 

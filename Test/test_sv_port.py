@@ -14,6 +14,7 @@ class TestSVPort(TestCase):
         self.assertEqual('a', port.name)
         self.assertEqual('logic', port.type)
         self.assertEqual('inout', port.mode)
+        self.assertEqual('', port.unpacked_dims)
 
     def test_parse_str_dir(self):
         """Test a port definition with only a direction"""
@@ -23,6 +24,7 @@ class TestSVPort(TestCase):
         self.assertEqual('foo', port.name)
         self.assertEqual('logic', port.type)
         self.assertEqual('input', port.mode)
+        self.assertEqual('', port.unpacked_dims)
 
     def test_parse_str_full(self):
         """Test 'full' port definition"""
@@ -32,9 +34,33 @@ class TestSVPort(TestCase):
         self.assertEqual('bar', port.name)
         self.assertEqual('logic [5:0]', port.type)
         self.assertEqual('output', port.mode)
+        self.assertEqual('', port.unpacked_dims)
 
         port = SvPort.parse_str(' output logic [3:0] debug_o ')
         self.assertEqual('debug_o', port.name)
         self.assertEqual('logic [3:0]', port.type)
         self.assertEqual('output', port.mode)
+        self.assertEqual('', port.unpacked_dims)
+
+        port = SvPort.parse_str('reg[range_hi:range_lo] y')
+        self.assertEqual('y', port.name)
+        self.assertEqual('reg[range_hi:range_lo]', port.type)
+        self.assertEqual('inout', port.mode)
+        self.assertEqual('', port.unpacked_dims)
+
+    def test_parse_str_unpacked(self):
+        """Test ports with unpacked dimensions"""
+        from VHDLMode.sv_lang import SvPort
+        port = SvPort.parse_str('reg unpacked_array [7:0]')
+        self.assertEqual('unpacked_array', port.name)
+        self.assertEqual('reg', port.type)
+        self.assertEqual('inout', port.mode)
+        self.assertEqual('[7:0]', port.unpacked_dims)
+
+        port = SvPort.parse_str('input int [7:0] y[range_hi:range_lo]')
+        self.assertEqual('y', port.name)
+        self.assertEqual('int [7:0]', port.type)
+        self.assertEqual('input', port.mode)
+        self.assertEqual('[range_hi:range_lo]', port.unpacked_dims)
+        pass
 
