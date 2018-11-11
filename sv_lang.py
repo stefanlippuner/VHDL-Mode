@@ -553,15 +553,36 @@ class SVInterface:
         """
         if self.data.if_ports:
             for port in self.data.if_ports:
-                if port.mode.lower() == 'in':
-                    port.mode = 'out'
-                elif port.mode.lower() == 'out' or port.mode.lower() == 'buffer':
-                    port.mode = 'in'
+                if port.mode.lower() == 'input':
+                    port.mode = 'output'
+                elif port.mode.lower() == 'output':
+                    port.mode = 'input'
 
 
 # ---------------------------------------------------------------
 def indent_sv(lines, initial=0, tab_size=4, use_spaces=True):
     """
-    Placeholder function for indenting SV code
+    Implements SV indenting based on brackets only
     """
-    pass
+
+    # Set the indent to tabs or spaces here
+    if use_spaces:
+        indent_char = ' '*tab_size
+    else:
+        indent_char = '\t'
+
+    current_indent = initial
+    for i in range(0, len(lines)):
+        line = lines[i]
+
+        min_indent = current_indent
+        for j in range(0, len(line)):
+            if line[j] == '(':
+                current_indent += 1
+            elif line[j] == ')':
+                current_indent -= 1
+                min_indent = min(current_indent, min_indent)
+
+        # Modify the line here.
+        lines[i] = indent_char * min_indent + line
+
