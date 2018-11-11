@@ -3,7 +3,6 @@
 	// All VHDL Mode Commands for the Command Palette
 	//
 	{"caption": "VHDL Mode - Copy Ports",                            "command": "vhdl_mode_copy_ports"},
-	{"caption": "VHDL Mode - Copy System Verilog Ports",             "command": "vhdl_mode_copy_sv_ports"},
 	{"caption": "VHDL Mode - Paste Ports as Entity",                 "command": "vhdl_mode_paste_as_entity"},
 	{"caption": "VHDL Mode - Paste Ports as Component",              "command": "vhdl_mode_paste_as_component"},
 	{"caption": "VHDL Mode - Paste Ports as Direct Entity Instance", "command": "vhdl_mode_paste_as_instance"},

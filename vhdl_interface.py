@@ -9,7 +9,7 @@ import sublime_plugin
 
 from .translation import Translation
 from . import vhdl_lang as vhdl
-from . import sv_lang   as sv
+from . import sv_lang as sv
 from . import vhdl_util as util
 
 _vhdl_interface = vhdl.VhdlInterface()
@@ -59,55 +59,7 @@ class vhdlModeCopyPortsCommand(sublime_plugin.TextCommand):
                 print('vhdl-mode: VhdlInterface end found.')
                 return self.view.text_point(self.view.rowcol(next_point)[0], check)
 
-    def run(self, edit):
-        global _vhdl_interface, _sv_interface
-
-        # Save the starting point location.  In the case of a
-        # multi-selection, save point A of the first region.
-        # This command does not have any meaning for a multi-
-        # selection.
-        region = self.view.sel()[0]
-        original_point = region.begin()
-
-        # Search for the starting entity string.
-        startpoint = self.find_start(original_point, _vhdl_interface)
-        if startpoint is None:
-            util.set_cursor(self, original_point)
-            return
-
-        # Search for the endpoint based on the start point.
-        endpoint = self.find_end(startpoint, _vhdl_interface)
-        if endpoint is None:
-            util.set_cursor(self, original_point)
-            return
-
-        # At this point, we should have a start and end point.  Extract
-        # the string that contains the interface by creating a region
-        # with the points.  At this point, all the processing should be
-        # in the interface class.
-        block = sublime.Region(startpoint, endpoint)
-        _vhdl_interface.parse_block(self.view.substr(block))
-
-        # Copy the data to the SV Interface class
-        _sv_interface.data = Translation.interface_vhdl_to_sv(_vhdl_interface.data)
-
-        # At the very end, move the point back to where we
-        # started
-        util.set_cursor(self, original_point)
-
-
-# ----------------------------------------------------------------
-class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
-    """
-    The copy ports command requires the user to have placed the
-    point somewhere in the interface to be extracted.  The
-    routine then scans upwards to find a known interface beginning
-    and then down to find the end point.  If a good interface
-    can be determined, then it uses the VHDL language classes to
-    parse the text from the editor and store the structural
-    elements for later pasting in other forms.
-    """
-    def find_start(self, point, interface):
+    def sv_find_start(self, point, interface):
         # Abstracting the loop for finding the beginning
         # of the declaration.
         # Moving point to beginning of line which avoids
@@ -125,7 +77,7 @@ class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
                 print('vhdl-mode: SVInterface beginning found.')
                 return self.view.text_point(self.view.rowcol(next_point)[0], check)
 
-    def find_end(self, point, interface):
+    def sv_find_end(self, point, interface):
         # Stepping forward to find the end of the interface.
         next_point = util.move_to_bol(self, point)
         while True:
@@ -141,7 +93,8 @@ class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
                 return self.view.text_point(self.view.rowcol(next_point)[0], check)
 
     def run(self, edit):
-        global _sv_interface
+        global _vhdl_interface, _sv_interface
+        lang = util.get_language_from_filename(self.view.file_name())
 
         # Save the starting point location.  In the case of a
         # multi-selection, save point A of the first region.
@@ -150,31 +103,58 @@ class vhdlModeCopySvPortsCommand(sublime_plugin.TextCommand):
         region = self.view.sel()[0]
         original_point = region.begin()
 
-        # Search for the starting entity string.
-        startpoint = self.find_start(original_point, _sv_interface)
-        if startpoint is None:
-            util.set_cursor(self, original_point)
-            return
+        if lang == 'sv':
 
-        # Search for the endpoint based on the start point.
-        endpoint = self.find_end(startpoint, _sv_interface)
-        if endpoint is None:
-            util.set_cursor(self, original_point)
-            return
+            # Search for the starting entity string.
+            startpoint = self.sv_find_start(original_point, _sv_interface)
+            if startpoint is None:
+                util.set_cursor(self, original_point)
+                return
 
-        # At this point, we should have a start and end point.  Extract
-        # the string that contains the interface by creating a region
-        # with the points.  At this point, all the processing should be
-        # in the interface class.
-        block = sublime.Region(startpoint, endpoint)
-        _sv_interface.parse_block(self.view.substr(block))
+            # Search for the endpoint based on the start point.
+            endpoint = self.sv_find_end(startpoint, _sv_interface)
+            if endpoint is None:
+                util.set_cursor(self, original_point)
+                return
 
-        # Copy the data to the VHDL Interface class
-        _vhdl_interface.data = Translation.interface_sv_to_vhdl(_sv_interface.data)
+            # At this point, we should have a start and end point.  Extract
+            # the string that contains the interface by creating a region
+            # with the points.  At this point, all the processing should be
+            # in the interface class.
+            block = sublime.Region(startpoint, endpoint)
+            _sv_interface.parse_block(self.view.substr(block))
+
+            # Copy the data to the VHDL Interface class
+            _vhdl_interface.data = Translation.interface_sv_to_vhdl(_sv_interface.data)
+
+        elif lang == 'vhdl' or lang is None:
+
+            # Search for the starting entity string.
+            startpoint = self.find_start(original_point, _vhdl_interface)
+            if startpoint is None:
+                util.set_cursor(self, original_point)
+                return
+
+            # Search for the endpoint based on the start point.
+            endpoint = self.find_end(startpoint, _vhdl_interface)
+            if endpoint is None:
+                util.set_cursor(self, original_point)
+                return
+
+            # At this point, we should have a start and end point.  Extract
+            # the string that contains the interface by creating a region
+            # with the points.  At this point, all the processing should be
+            # in the interface class.
+            block = sublime.Region(startpoint, endpoint)
+            _vhdl_interface.parse_block(self.view.substr(block))
+
+            # Copy the data to the SV Interface class
+            _sv_interface.data = Translation.interface_vhdl_to_sv(_vhdl_interface.data)
 
         # At the very end, move the point back to where we
         # started
         util.set_cursor(self, original_point)
+
 
 #----------------------------------------------------------------
 class vhdlModePasteAsSignalCommand(sublime_plugin.TextCommand):

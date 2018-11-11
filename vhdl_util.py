@@ -7,6 +7,7 @@
 import re
 import sublime
 import sublime_plugin
+import os.path
 
 def move_up(self, point):
     """
@@ -150,3 +151,21 @@ def scan_instantiations(cmd_obj):
             print('vhdl-mode: Could not match instantiation on line {}'.format(row+1))
     return instances
 
+
+def get_language_from_filename(filename):
+    """
+    Attempts to find out the RTL language from a filename
+    :param filename: (Path + )Filename
+    :return: Either 'vhdl', 'sv', or None
+    """
+
+    if not isinstance(filename, str):
+        return None
+    else:
+        path, extension = os.path.splitext(filename)
+        if extension == '.vhdl':
+            return 'vhdl'
+        elif extension == '.sv' or extension == '.v':
+            return 'sv'
+
+    return None
