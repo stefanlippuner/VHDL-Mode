@@ -78,7 +78,7 @@ class TestSvParameter(TestCase):
     def test_print_as_genmap(self):
         from VHDLMode.sv_lang import SvParameter as p
         d = p.parse_str('parameter logic [5:0] p3 = 5')
-        self.assertEqual('p3 = p3', p.print_as_genmap(d))
+        self.assertEqual('.p3 ( p3 )', p.print_as_genmap(d))
 
     def test_print_as_constant(self):
         from VHDLMode.sv_lang import SvParameter as p

@@ -311,7 +311,7 @@ class SvPort:
         names = compact.split(',')
         lines = []
         for name in names:
-            lines.append('.{} ({})'.format(name, name))
+            lines.append('.{} ( {} )'.format(name, name))
         # This is a departure from the other "print as" methods as
         # it returns a list instead of a string.
         return lines
@@ -398,7 +398,7 @@ class SvParameter:
     @staticmethod
     def print_as_genmap(data: common_lang.Generic):
         """Returns a string with the generic interface as a generic map."""
-        line = '{} = {}'.format(data.name, data.name)
+        line = '.{} ( {} )'.format(data.name, data.name)
         return line
 
     @staticmethod

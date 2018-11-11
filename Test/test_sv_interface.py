@@ -167,12 +167,12 @@ class TestSVInterface(TestCase):
         interface.parse_block(input)
 
         expected = """m m_1 #(
-alpha = alpha,
-beta = beta
+.alpha ( alpha ),
+.beta  ( beta  )
 ) (
-.a           (a           ),
-.b           (b           ),
-.ccccccccccc (ccccccccccc )
+.a           ( a           ),
+.b           ( b           ),
+.ccccccccccc ( ccccccccccc )
 );"""
 
         self.assertEqual(expected, interface.instance())
