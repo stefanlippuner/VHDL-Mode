@@ -67,7 +67,7 @@ class TestSVPort(TestCase):
     def test_print_as_signal(self):
         from VHDLMode.sv_lang import SvPort
         data = SvPort.parse_str('input int [7:0] y[range_hi:range_lo]')
-        self.assertEqual('int [7:0] y [range_hi:range_lo]', SvPort.print_as_signal(data))
+        self.assertEqual('int [7:0] y[range_hi:range_lo]', SvPort.print_as_signal(data))
 
     def test_print_as_portmap(self):
         from VHDLMode.sv_lang import SvPort
