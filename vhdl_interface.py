@@ -163,7 +163,10 @@ class vhdlModePasteAsSignalCommand(sublime_plugin.TextCommand):
     signals (ports only, not generics.)
     """
     def run(self, edit):
-        global _vhdl_interface
+        global _vhdl_interface, _sv_interface
+
+        lang = util.get_language_from_filename(self.view.file_name())
+
         # Get the current point location.
         region = self.view.sel()[0]
         original_point = region.begin()
@@ -173,7 +176,11 @@ class vhdlModePasteAsSignalCommand(sublime_plugin.TextCommand):
 
         lines = []
         # Construct structure and insert
-        block_str = _vhdl_interface.signals()
+        if lang == 'sv':
+            block_str = _sv_interface.signals()
+        elif lang == 'vhdl' or lang is None:
+            block_str = _vhdl_interface.signals()
+
         if block_str is not None:
             num_chars = self.view.insert(edit, next_point, block_str)
             print('vhdl-mode: Inserted interface as signal(s).')
@@ -209,6 +216,10 @@ class vhdlModePasteAsEntityCommand(sublime_plugin.TextCommand):
     Pasting the currently copied interface as an entity.
     """
     def run(self, edit):
+        global _vhdl_interface, _sv_interface
+
+        lang = util.get_language_from_filename(self.view.file_name())
+
         # Get the current point location.
         region = self.view.sel()[0]
         original_point = region.begin()
@@ -216,7 +227,11 @@ class vhdlModePasteAsEntityCommand(sublime_plugin.TextCommand):
         # Move to the beginning of the line the point is on.
         next_point = util.move_to_bol(self, original_point)
 
-        block_str = _vhdl_interface.entity()
+        if lang == 'sv':
+            block_str = _sv_interface.entity()
+        elif lang == 'vhdl' or lang is None:
+            block_str = _vhdl_interface.entity()
+
         num_chars = self.view.insert(edit, next_point, block_str)
         print('vhdl-mode: Inserted interface as entity.')
 
@@ -231,6 +246,10 @@ class vhdlModePasteAsInstanceCommand(sublime_plugin.TextCommand):
     instances of the same interface in the source.
     """
     def run(self, edit):
+        global _vhdl_interface, _sv_interface
+
+        lang = util.get_language_from_filename(self.view.file_name())
+
         # Get the current point location.
         region = self.view.sel()[0]
         original_point = region.begin()
@@ -238,9 +257,14 @@ class vhdlModePasteAsInstanceCommand(sublime_plugin.TextCommand):
         # Move to the beginning of the line the point is on.
         next_point = util.move_to_bol(self, original_point)
 
-        # Construct structure.  Get the file structure.
-        instances = util.scan_instantiations(self)
-        block_str = _vhdl_interface.instance(instances=instances)
+        if lang == 'sv':
+            block_str = _sv_interface.instance()
+        elif lang == 'vhdl' or lang is None:
+            # Construct structure.  Get the file structure.
+            instances = util.scan_instantiations(self)
+
+            block_str = _vhdl_interface.instance(instances=instances)
+
         num_chars = self.view.insert(edit, next_point, block_str)
         print('vhdl-mode: Inserted interface as instance.')
 
