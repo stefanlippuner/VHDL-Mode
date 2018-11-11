@@ -124,19 +124,84 @@ class TestSVInterface(TestCase):
         self.assertEqual(True,          interface.data.if_ports[3].success)
 
     def test_signals(self):
-        self.skipTest('Not implemented')
+        from VHDLMode.sv_lang import SVInterface
+        interface = SVInterface()
+
+        interface.parse_block(
+            """module m (a,b,c,d);
+            input int a;
+            input [4:0] b;
+            output reg [3:0] c;
+            input d;
+            // ...
+            endmodule""")
+
+        self.assertEqual("int a;\n[4:0] b;\nreg [3:0] c;\nlogic d;", interface.signals())
 
     def test_constants(self):
-        self.skipTest('Not implemented')
+        from VHDLMode.sv_lang import SVInterface
+        interface = SVInterface()
+
+        interface.parse_block(
+            """module m
+            #(parameter a = 5, parameter type b = int)            
+            (input int a, output int b, input logic c);
+            // ...
+            endmodule""")
+
+        self.assertEqual("const int a = 5;\ntypedef int b;", interface.constants())
 
     def test_instance(self):
-        self.skipTest('Not implemented')
+        from VHDLMode.sv_lang import SVInterface
+        interface = SVInterface()
 
-    def test_component(self):
-        self.skipTest('Not implemented')
+        input = """module m
+            #(parameter alpha = 5, parameter type beta = int)            
+            (input int a, output int b, input logic ccccccccccc);
+            // ...
+            endmodule"""
+        input_a = input.split("\n")
+
+        interface.interface_start(input_a[0])
+        interface.interface_end(input_a[-1])
+        interface.parse_block(input)
+
+        expected = """m m_1 #(
+alpha = alpha,
+beta = beta
+) (
+.a           (a           ),
+.b           (b           ),
+.ccccccccccc (ccccccccccc )
+);"""
+
+        self.assertEqual(expected, interface.instance())
 
     def test_entity(self):
-        self.skipTest('Not implemented')
+        from VHDLMode.sv_lang import SVInterface
+        interface = SVInterface()
+
+        input = """module m
+            #(parameter alpha = 5, parameter type beta = int)            
+            (input int a, output int b, input logic ccccccccccc);
+            // ...
+            endmodule"""
+        input_a = input.split("\n")
+
+        interface.interface_start(input_a[0])
+        interface.interface_end(input_a[-1])
+        interface.parse_block(input)
+
+        expected = """module m #(
+parameter int alpha = 5,
+parameter type beta = int
+) (
+input int a,
+output int b,
+input logic ccccccccccc
+); // module m"""
+
+        self.assertEqual(expected, interface.entity())
 
     def test_flatten(self):
         self.skipTest('Not implemented')

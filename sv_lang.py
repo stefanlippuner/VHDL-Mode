@@ -296,7 +296,7 @@ class SvPort:
     def print_as_signal(data: common_lang.Port):
         """Returns a string with the port formatted for a signal."""
         # Trailing semicolon provided by calling routine.
-        line = '{} {} {}'.format(data.type, data.name, data.unpacked_dims)
+        line = '{} {}{}'.format(data.type, data.name, data.unpacked_dims)
         # print(line)
         return line
 
@@ -392,7 +392,7 @@ class SvParameter:
         if data.kind == common_lang.GenericKind.VALUE:
             line = 'parameter {} {} = {}'.format(data.type, data.name, data.default_value)
         elif data.kind == common_lang.GenericKind.TYPE:
-            line = 'parameter type {} {} = {}'.format(data.type, data.name, data.default_value)
+            line = 'parameter type {} = {}'.format(data.name, data.default_value)
         return line
 
     @staticmethod
@@ -597,8 +597,11 @@ class SVInterface:
         if data.data.if_ports:
             for port in data.data.if_ports:
                 lines.append(SvPort.print_as_signal(port) + ';')
-            align_block_on_re(lines, r':')
-            indent_vhdl(lines, 1)
+
+            # I don't see how we could align SV variables
+            # automatically, so no block_align_block_on_re here
+
+            indent_sv(lines, 1)
             return '\n'.join(lines)
         else:
             return None
@@ -612,9 +615,8 @@ class SVInterface:
         if self.data.if_generics:
             for generic in self.data.if_generics:
                 lines.append(SvParameter.print_as_constant(generic) + ';')
-            align_block_on_re(lines, r':')
-            align_block_on_re(lines, r':=')
-            indent_vhdl(lines, 1)
+            align_block_on_re(lines, r'=')
+            indent_sv(lines, 1)
             return '\n'.join(lines)
         else:
             return None
@@ -637,22 +639,27 @@ class SVInterface:
         else:
             inst_name = self.data.name+'_1'
         lines = []
-        lines.append("{} : entity work.{}".format(inst_name, self.data.name))
+        lines.append("{} {}".format(self.data.name, inst_name))
         if self.data.if_generics:
-            lines.append("generic map (")
+            lines[-1] += " #("
             # Put the generics in here.  Join with , and a temp
             # character then split at the temp character.  That
-            # should create the lines with semicolons on all but
+            # should create the lines with commas on all but
             # the last.
             gen_strings = []
             for generic in self.data.if_generics:
                 gen_strings.append(SvParameter.print_as_genmap(generic))
             gen_strings = ',^'.join(gen_strings).split('^')
+
+            align_block_on_re(gen_strings, r'.')
+            align_block_on_re(gen_strings, r'\(')
+            align_block_on_re(gen_strings, r'\)')
+
             for gen_str in gen_strings:
                 lines.append(gen_str)
             lines.append(")")
         if self.data.if_ports:
-            lines.append("port map (")
+            lines[-1] += " ("
             # Put the ports in here.  Same as before.
             port_strings = []
             for port in self.data.if_ports:
@@ -660,52 +667,17 @@ class SVInterface:
                 for mapping in SvPort.print_as_portmap(port):
                     port_strings.append(mapping)
             port_strings = ',^'.join(port_strings).split('^')
+
+            align_block_on_re(port_strings, r'.')
+            align_block_on_re(port_strings, r'\(')
+            align_block_on_re(port_strings, r'\)')
+
             for port_str in port_strings:
                 lines.append(port_str)
-            lines.append(");")
+            lines.append(")")
+        lines[-1] += ";"
 
-        align_block_on_re(lines, '=>')
-        indent_vhdl(lines, 1)
-
-        return '\n'.join(lines)
-
-    def component(self):
-        """
-        Returns a string with a formatted component
-        variation of the interface.3
-        """
-        # Construct structure
-        lines = []
-        lines.append("component {} is".format(self.data.name))
-        if self.data.if_generics:
-            lines.append("generic (")
-            # Put the generics in here.  Join with ; and a temp
-            # character then split at the temp character.  That
-            # should create the lines with semicolons on all but
-            # the last.
-            gen_strings = []
-            for generic in self.data.if_generics:
-                gen_strings.append(SvParameter.print_as_generic(generic))
-            gen_strings = ';^'.join(gen_strings).split('^')
-            for gen_str in gen_strings:
-                lines.append(gen_str)
-            lines.append(");")
-        if self.data.if_ports:
-            lines.append("port (")
-            # Put the ports in here.  Same as before.
-            port_strings = []
-            for port in self.data.if_ports:
-                port_strings.append(SvPort.print_as_port(port))
-            port_strings = ';^'.join(port_strings).split('^')
-            for port_str in port_strings:
-                lines.append(port_str)
-            lines.append(");")
-        lines.append("end component {};".format(self.data.name))
-
-        align_block_on_re(lines, ':')
-        align_block_on_re(lines, r':\s?(?:in\b|out\b|inout\b|buffer\b)?\s*', 'post')
-        align_block_on_re(lines, ':=')
-        indent_vhdl(lines, 1)
+        indent_sv(lines, 1)
 
         return '\n'.join(lines)
 
@@ -716,9 +688,9 @@ class SVInterface:
         """
         # Construct structure
         lines = []
-        lines.append("entity {} is".format(self.data.name))
+        lines.append("module {}".format(self.data.name))
         if self.data.if_generics:
-            lines.append("generic (")
+            lines[-1] += ' #('
             # Put the generics in here.  Join with ; and a temp
             # character then split at the temp character.  That
             # should create the lines with semicolons on all but
@@ -726,26 +698,24 @@ class SVInterface:
             gen_strings = []
             for generic in self.data.if_generics:
                 gen_strings.append(SvParameter.print_as_generic(generic))
-            gen_strings = ';^'.join(gen_strings).split('^')
+            gen_strings = ',^'.join(gen_strings).split('^')
             for gen_str in gen_strings:
                 lines.append(gen_str)
-            lines.append(");")
+            lines.append(")")
         if self.data.if_ports:
-            lines.append("port (")
+            lines[-1] += ' ('
             # Put the ports in here.  Same as before.
             port_strings = []
             for port in self.data.if_ports:
                 port_strings.append(SvPort.print_as_port(port))
-            port_strings = ';^'.join(port_strings).split('^')
+            port_strings = ',^'.join(port_strings).split('^')
             for port_str in port_strings:
                 lines.append(port_str)
-            lines.append(");")
-        lines.append("end entity {};".format(self.data.name))
+            lines.append(")")
+        lines[-1] += "; // module {}".format(self.data.name)
 
-        align_block_on_re(lines, ':')
-        align_block_on_re(lines, r':\s?(?:in\b|out\b|inout\b|buffer\b)?\s*', 'post')
-        align_block_on_re(lines, ':=')
-        indent_vhdl(lines, 0)
+        align_block_on_re(lines, r':\s?(?:input\b|output\b|inout\b)?\s*', 'post')
+        indent_sv(lines, 0)
 
         return '\n'.join(lines)
 
@@ -794,3 +764,23 @@ class SVInterface:
                 elif port.mode.lower() == 'out' or port.mode.lower() == 'buffer':
                     port.mode = 'in'
 
+
+# ---------------------------------------------------------------
+def indent_sv(lines, initial=0, tab_size=4, use_spaces=True):
+    """
+    Placeholder function for indenting SV code
+    """
+    pass
+
+
+# ---------------------------------------------------------------
+def check_for_comment(line):
+    """
+    Simple method that will return False if a line does not
+    begin with a comment, otherwise True.  Mainly used for
+    disabling alignment.
+    """
+    pattern = r'^\s*//'
+    p = re.compile(pattern, re.IGNORECASE)
+    s = re.search(p, line)
+    return bool(s)
