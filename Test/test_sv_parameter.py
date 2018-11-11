@@ -70,3 +70,24 @@ class TestSvParameter(TestCase):
         self.assertEqual('SIZE_WIDTH', d.name)
         self.assertEqual('3', d.default_value)
 
+    def test_print_as_generic(self):
+        from VHDLMode.sv_lang import SvParameter as p
+        d = p.parse_str('parameter logic [5:0] p3 = 5')
+        self.assertEqual('parameter logic [5:0] p3 = 5', p.print_as_generic(d))
+
+    def test_print_as_genmap(self):
+        from VHDLMode.sv_lang import SvParameter as p
+        d = p.parse_str('parameter logic [5:0] p3 = 5')
+        self.assertEqual('p3 = p3', p.print_as_genmap(d))
+
+    def test_print_as_constant(self):
+        from VHDLMode.sv_lang import SvParameter as p
+        d = p.parse_str('parameter logic [5:0] p3 = 5')
+        self.assertEqual('const logic [5:0] p3 = 5', p.print_as_constant(d))
+
+        d = p.parse_str('parameter type p2 = shortint')
+        self.assertEqual('typedef shortint p2', p.print_as_constant(d))
+
+
+
+

@@ -296,7 +296,7 @@ class SvPort:
     def print_as_signal(data: common_lang.Port):
         """Returns a string with the port formatted for a signal."""
         # Trailing semicolon provided by calling routine.
-        line = 'signal {} : {}'.format(data.name, data.type)
+        line = '{} {} {}'.format(data.type, data.name, data.unpacked_dims)
         # print(line)
         return line
 
@@ -311,7 +311,7 @@ class SvPort:
         names = compact.split(',')
         lines = []
         for name in names:
-            lines.append('{} => {}'.format(name, name))
+            lines.append('.{} ({})'.format(name, name))
         # This is a departure from the other "print as" methods as
         # it returns a list instead of a string.
         return lines
@@ -320,7 +320,7 @@ class SvPort:
     def print_as_port(data: common_lang.Port):
         """Returns a string with the port formatted as a port."""
         # Trailing semicolon provided by calling routine.
-        line = '{} : {} {}'.format(data.name, data.mode, data.type)
+        line = '{} {} {}{}'.format(data.mode, data.type, data.name, data.unpacked_dims)
         # print(line)
         return line
 
@@ -334,7 +334,7 @@ class SvParameter:
     """
 
     @staticmethod
-    def parse_str(gen_str):
+    def parse_str(gen_str: str):
         """Attempts to extract the information from a generic interface."""
         data = common_lang.Generic()
 
@@ -387,29 +387,31 @@ class SvParameter:
         return data
 
     @staticmethod
-    def print_as_generic(data):
+    def print_as_generic(data: common_lang.Generic):
         """Returns a string with the generic interface as a generic."""
-        line = '{} : {}'.format(data.name, data.type)
+        if data.kind == common_lang.GenericKind.VALUE:
+            line = 'parameter {} {} = {}'.format(data.type, data.name, data.default_value)
+        elif data.kind == common_lang.GenericKind.TYPE:
+            line = 'parameter type {} {} = {}'.format(data.type, data.name, data.default_value)
         return line
 
     @staticmethod
-    def print_as_genmap(data):
+    def print_as_genmap(data: common_lang.Generic):
         """Returns a string with the generic interface as a generic map."""
-        line = '{} => {}'.format(data.name, data.name)
+        line = '{} = {}'.format(data.name, data.name)
         return line
 
     @staticmethod
-    def print_as_constant(data):
+    def print_as_constant(data: common_lang.Generic):
         """Returns a string with the generic interface as a constant."""
-        # So... generic doesn't necessarily have to have a default value
-        # even though it should.  So this requires a little detective work
-        # to know whether to include the whole line or add in the necessary
-        # constant definition.
-        s = re.search(r':=', data.type, re.I)
-        if s:
-            line = 'constant {} : {}'.format(data.name, data.type)
-        else:
-            line = 'constant {} : {} := <value>'.format(data.name, data.type)
+        # Depends on the kind of parameter
+        if data.kind == common_lang.GenericKind.VALUE:
+            # In SV a parameter always has a default value
+            line = 'const {} {} = {}'.format(data.type, data.name, data.default_value)
+
+        elif data.kind == common_lang.GenericKind.TYPE:
+            line = 'typedef {} {}'.format(data.default_value, data.name)
+
         return line
 
 
