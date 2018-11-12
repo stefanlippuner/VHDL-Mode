@@ -18,6 +18,12 @@
 	{"keys": ["alt+k", "s", "c"], "command": "vhdl_mode_paste_as_call",        "context": [{"key": "selector", "operand": "source.vhdl"}] },
 	{"keys": ["alt+k", "s", "f"], "command": "vhdl_mode_flatten_params",       "context": [{"key": "selector", "operand": "source.vhdl"}] },
 
+	// SystemVerilog
+	{"keys": ["alt+k", "p", "w"], "command": "vhdl_mode_copy_ports",         "context": [{"key": "selector", "operand": "source.systemverilog"}] },
+	{"keys": ["alt+k", "p", "s"], "command": "vhdl_mode_paste_as_signal",    "context": [{"key": "selector", "operand": "source.systemverilog"}] },
+	{"keys": ["alt+k", "p", "e"], "command": "vhdl_mode_paste_as_entity",    "context": [{"key": "selector", "operand": "source.systemverilog"}] },
+	{"keys": ["alt+k", "p", "i"], "command": "vhdl_mode_paste_as_instance",  "context": [{"key": "selector", "operand": "source.systemverilog"}] },
+	{"keys": ["alt+k", "p", "t"], "command": "vhdl_mode_paste_as_testbench", "context": [{"key": "selector", "operand": "source.systemverilog"}] },
 
 	// Toggle comment command.  'c' starts code commands.
 	{"keys": ["alt+k", "c", "c"], "command": "vhdl_mode_toggle_comment_region", "context": [{"key": "selector", "operand": "source.vhdl"}] },
@@ -119,6 +125,15 @@
 	{"keys": ["ctrl+c", "ctrl+s", "ctrl+d"], "command": "vhdl_mode_paste_as_declaration", "context": [{"key": "selector", "operand": "source.vhdl"}, {"key": "setting.vhdl-emacs-keybinds", "operand": true}] },
 	{"keys": ["ctrl+c", "ctrl+s", "ctrl+b"], "command": "vhdl_mode_paste_as_body",        "context": [{"key": "selector", "operand": "source.vhdl"}, {"key": "setting.vhdl-emacs-keybinds", "operand": true}] },
 	{"keys": ["ctrl+c", "ctrl+s", "ctrl+c"], "command": "vhdl_mode_paste_as_call",        "context": [{"key": "selector", "operand": "source.vhdl"}, {"key": "setting.vhdl-emacs-keybinds", "operand": true}] },
-	{"keys": ["ctrl+c", "ctrl+s", "ctrl+f"], "command": "vhdl_mode_flatten_params",       "context": [{"key": "selector", "operand": "source.vhdl"}, {"key": "setting.vhdl-emacs-keybinds", "operand": true}] }
+	{"keys": ["ctrl+c", "ctrl+s", "ctrl+f"], "command": "vhdl_mode_flatten_params",       "context": [{"key": "selector", "operand": "source.vhdl"}, {"key": "setting.vhdl-emacs-keybinds", "operand": true}] },
+
+	// SystemVerilog
+	{"keys": ["ctrl+c", "ctrl+p", "ctrl+w"], "command": "vhdl_mode_copy_ports",           "context": [{"key": "selector", "operand": "source.systemverilog"}, {"key": "setting.vhdl-emacs-keybinds", "operand": true}] },
+	{"keys": ["ctrl+c", "ctrl+p", "ctrl+s"], "command": "vhdl_mode_paste_as_signal",      "context": [{"key": "selector", "operand": "source.systemverilog"}, {"key": "setting.vhdl-emacs-keybinds", "operand": true}] },
+	{"keys": ["ctrl+c", "ctrl+p", "ctrl+c"], "command": "vhdl_mode_paste_as_component",   "context": [{"key": "selector", "operand": "source.systemverilog"}, {"key": "setting.vhdl-emacs-keybinds", "operand": true}] },
+	{"keys": ["ctrl+c", "ctrl+p", "ctrl+e"], "command": "vhdl_mode_paste_as_entity",      "context": [{"key": "selector", "operand": "source.systemverilog"}, {"key": "setting.vhdl-emacs-keybinds", "operand": true}] },
+	{"keys": ["ctrl+c", "ctrl+p", "ctrl+i"], "command": "vhdl_mode_paste_as_instance",    "context": [{"key": "selector", "operand": "source.systemverilog"}, {"key": "setting.vhdl-emacs-keybinds", "operand": true}] },
+	{"keys": ["ctrl+c", "ctrl+p", "ctrl+t"], "command": "vhdl_mode_paste_as_testbench",   "context": [{"key": "selector", "operand": "source.systemverilog"}, {"key": "setting.vhdl-emacs-keybinds", "operand": true}] },
 
 ]
+// 
