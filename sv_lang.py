@@ -55,20 +55,36 @@ class SvPort:
 
         # Then we check for unpacked dimensions
         up_pattern = r'(?P<prefix>.*?)\s*(?P<unpacked>\[[^\[]*\])$'
-        up_s = re.search(re.compile(up_pattern, re.IGNORECASE), port_str)
-        if up_s:
-            data.unpacked_dims = up_s.group('unpacked')
-            port_str = up_s.group('prefix')
-        else:
-            pass
+        up_c = re.compile(up_pattern, re.IGNORECASE)
 
-        type_pattern = r'(?P<type>.*?)\s+(?P<name>\S*)$'
-        pp = re.compile(type_pattern, re.IGNORECASE)
-        s = re.search(pp, port_str)
+        while True:
+            up_s = re.search(up_c, port_str)
+            if up_s:
+                data.unpacked_dims = up_s.group('unpacked') + data.unpacked_dims
+                port_str = up_s.group('prefix')
+            else:
+                break
 
-        if s:
-            data.name = s.group('name')
-            data.type = s.group('type')
+        # We try to handle the case with packed dimensions first. In this case there
+        # might not be a space between the packed dimensions and the name
+
+        packed_pattern = r'(?P<type>.*?)(\s)*(?P<packed>\[[^\[]*\])(\s)*(?P<name>\S*)$'
+        packed_c = re.compile(packed_pattern, re.IGNORECASE)
+        packed_s = re.search(packed_c, port_str)
+
+        type_pattern = r'(?P<type>.+?)\s+(?P<name>\S*)$'
+        type_s = re.search(re.compile(type_pattern, re.IGNORECASE), port_str)
+
+        if packed_s:
+            data.name = packed_s.group('name')
+            if packed_s.group('type') != "":
+                data.type = packed_s.group('type') + ' ' + packed_s.group('packed')
+            else:
+                data.type = packed_s.group('packed')
+            data.success = True
+        elif type_s:
+            data.name = type_s.group('name')
+            data.type = type_s.group('type')
             data.success = True
         else:
             data.type = 'logic'
@@ -506,7 +522,8 @@ class SVInterface:
             for port_str in port_strings:
                 lines.append(port_str)
             lines.append(")")
-        lines[-1] += "; // module {}".format(self.data.name)
+        lines[-1] += ";"
+        lines.append("endmodule // {}".format(self.data.name))
 
         align_block_on_re(lines, r':\s?(?:input\b|output\b|inout\b)?\s*', 'post', lang='sv')
         indent_sv(lines, 0)

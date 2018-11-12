@@ -87,6 +87,40 @@ class TestSVInterface(TestCase):
         self.assertEqual('input', data.if_ports[2].mode)
         self.assertEqual('logic', data.if_ports[2].type)
 
+    def test_parse_block_same_line(self):
+        from VHDLMode.sv_lang import SVInterface
+        interface = SVInterface()
+
+        block = """module blakley128(input logic   clk,
+        input logic             reset_n, 
+        input logic[127:0]      a,
+        output logic            ready);"""
+
+        interface.parse_block(block)
+
+        self.assertEqual([], interface.data.if_generics, 'trivial param')
+        self.assertEqual(4, len(interface.data.if_ports), 'trivial port count')
+
+        self.assertEqual('clk',           interface.data.if_ports[0].name)
+        self.assertEqual('input',         interface.data.if_ports[0].mode)
+        self.assertEqual('logic',         interface.data.if_ports[0].type)
+        self.assertEqual(True,            interface.data.if_ports[0].success)
+
+        self.assertEqual('reset_n',       interface.data.if_ports[1].name)
+        self.assertEqual('input',         interface.data.if_ports[1].mode)
+        self.assertEqual('logic',         interface.data.if_ports[1].type)
+        self.assertEqual(True,            interface.data.if_ports[1].success)
+
+        self.assertEqual('a',             interface.data.if_ports[2].name)
+        self.assertEqual('input',         interface.data.if_ports[2].mode)
+        self.assertEqual('logic [127:0]', interface.data.if_ports[2].type)
+        self.assertEqual(True,            interface.data.if_ports[2].success)
+
+        self.assertEqual('ready',         interface.data.if_ports[3].name)
+        self.assertEqual('output',        interface.data.if_ports[3].mode)
+        self.assertEqual('logic',         interface.data.if_ports[3].type)
+        self.assertEqual(True,            interface.data.if_ports[3].success)
+
     def test_parse_block_body(self):
         from VHDLMode.sv_lang import SVInterface
         interface = SVInterface()
@@ -136,7 +170,7 @@ class TestSVInterface(TestCase):
             // ...
             endmodule""")
 
-        self.assertEqual("int a;\n[4:0] b;\nreg [3:0] c;\nlogic d;", interface.signals())
+        self.assertEqual("    int a;\n    [4:0] b;\n    reg [3:0] c;\n    logic d;", interface.signals())
 
     def test_constants(self):
         from VHDLMode.sv_lang import SVInterface
@@ -149,7 +183,7 @@ class TestSVInterface(TestCase):
             // ...
             endmodule""")
 
-        self.assertEqual("const int a = 5;\ntypedef int b;", interface.constants())
+        self.assertEqual("    const int a = 5;\n    typedef int b;", interface.constants())
 
     def test_instance(self):
         from VHDLMode.sv_lang import SVInterface
@@ -166,14 +200,14 @@ class TestSVInterface(TestCase):
         interface.interface_end(input_a[-1])
         interface.parse_block(input)
 
-        expected = """m m_1 #(
-.alpha ( alpha ),
-.beta  ( beta  )
-) (
-.a           ( a           ),
-.b           ( b           ),
-.ccccccccccc ( ccccccccccc )
-);"""
+        expected = """    m m_1 #(
+        .alpha ( alpha ),
+        .beta  ( beta  )
+    ) (
+        .a           ( a           ),
+        .b           ( b           ),
+        .ccccccccccc ( ccccccccccc )
+    );"""
 
         self.assertEqual(expected, interface.instance())
 
@@ -193,13 +227,14 @@ class TestSVInterface(TestCase):
         interface.parse_block(input)
 
         expected = """module m #(
-parameter int alpha = 5,
-parameter type beta = int
+    parameter int alpha = 5,
+    parameter type beta = int
 ) (
-input int a,
-output int b,
-input logic ccccccccccc
-); // module m"""
+    input int a,
+    output int b,
+    input logic ccccccccccc
+);
+endmodule // m"""
 
         self.assertEqual(expected, interface.entity())
 
