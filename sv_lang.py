@@ -103,10 +103,10 @@ class SvPort:
         return data
 
     @staticmethod
-    def print_as_signal(data: common_lang.Port):
+    def print_as_signal(data: common_lang.Port, name_indicator = ''):
         """Returns a string with the port formatted for a signal."""
         # Trailing semicolon provided by calling routine.
-        line = '{} {}{}'.format(data.type, data.name, data.unpacked_dims)
+        line = '{} {}{}{}'.format(data.type, name_indicator, data.name, data.unpacked_dims)
         # print(line)
         return line
 
@@ -127,10 +127,11 @@ class SvPort:
         return lines
 
     @staticmethod
-    def print_as_port(data: common_lang.Port):
+    def print_as_port(data: common_lang.Port, name_indicator: str = ''):
         """Returns a string with the port formatted as a port."""
         # Trailing semicolon provided by calling routine.
-        line = '{} {} {}{}'.format(data.mode, data.type, data.name, data.unpacked_dims)
+        # The name_indicator is used for alignment in the calling function
+        line = '{} {} {}{}{}'.format(data.mode, data.type, name_indicator, data.name, data.unpacked_dims)
         # print(line)
         return line
 
@@ -197,12 +198,12 @@ class SvParameter:
         return data
 
     @staticmethod
-    def print_as_generic(data: common_lang.Generic):
+    def print_as_generic(data: common_lang.Generic, name_indicator: str = ''):
         """Returns a string with the generic interface as a generic."""
         if data.kind == common_lang.GenericKind.VALUE:
-            line = 'parameter {} {} = {}'.format(data.type, data.name, data.default_value)
+            line = 'parameter {} {}{} = {}'.format(data.type, name_indicator, data.name, data.default_value)
         elif data.kind == common_lang.GenericKind.TYPE:
-            line = 'parameter type {} = {}'.format(data.name, data.default_value)
+            line = 'parameter type {}{} = {}'.format(name_indicator, data.name, data.default_value)
         return line
 
     @staticmethod
@@ -406,10 +407,11 @@ class SVInterface:
         # Construct structure and insert
         if data.data.if_ports:
             for port in data.data.if_ports:
-                lines.append(SvPort.print_as_signal(port) + ';')
+                lines.append(SvPort.print_as_signal(port, name_indicator=',') + ';')
 
-            # I don't see how we could align SV variables
-            # automatically, so no block_align_block_on_re here
+            # Use the indicator to align the names, and then remove it
+            align_block_on_re(lines, r',', lang='sv')
+            lines = [re.sub(r',', '', i) for i in lines]
 
             indent_sv(lines, 1)
             return '\n'.join(lines)
@@ -507,7 +509,14 @@ class SVInterface:
             # the last.
             gen_strings = []
             for generic in self.data.if_generics:
-                gen_strings.append(SvParameter.print_as_generic(generic))
+                gen_strings.append(SvParameter.print_as_generic(generic, name_indicator=','))
+
+            # Align the lines
+            # Use the indicator to align the names, and then remove it
+            align_block_on_re(gen_strings, r',', lang='sv')
+            gen_strings = [re.sub(r',', '', i) for i in gen_strings]
+            align_block_on_re(gen_strings, r'=', lang='sv')
+
             gen_strings = ',^'.join(gen_strings).split('^')
             for gen_str in gen_strings:
                 lines.append(gen_str)
@@ -517,7 +526,14 @@ class SVInterface:
             # Put the ports in here.  Same as before.
             port_strings = []
             for port in self.data.if_ports:
-                port_strings.append(SvPort.print_as_port(port))
+                port_strings.append(SvPort.print_as_port(port, name_indicator=','))
+
+            # Align the lines
+            align_block_on_re(port_strings, r'^\s?(input\b|output\b|inout\b)?\s*', padside='post', lang='sv')
+            # Use the indicator to align the names, and then remove it
+            align_block_on_re(port_strings, r',', lang='sv')
+            port_strings = [re.sub(r',', '', i) for i in port_strings]
+
             port_strings = ',^'.join(port_strings).split('^')
             for port_str in port_strings:
                 lines.append(port_str)
@@ -525,7 +541,6 @@ class SVInterface:
         lines[-1] += ";"
         lines.append("endmodule // {}".format(self.data.name))
 
-        align_block_on_re(lines, r':\s?(?:input\b|output\b|inout\b)?\s*', 'post', lang='sv')
         indent_sv(lines, 0)
 
         return '\n'.join(lines)

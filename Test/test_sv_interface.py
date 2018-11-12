@@ -170,7 +170,13 @@ class TestSVInterface(TestCase):
             // ...
             endmodule""")
 
-        self.assertEqual("    int a;\n    [4:0] b;\n    reg [3:0] c;\n    logic d;", interface.signals())
+
+        expected = """    int       a;
+    [4:0]     b;
+    reg [3:0] c;
+    logic     d;"""
+
+        self.assertEqual(expected, interface.signals())
 
     def test_constants(self):
         from VHDLMode.sv_lang import SVInterface
@@ -178,12 +184,12 @@ class TestSVInterface(TestCase):
 
         interface.parse_block(
             """module m
-            #(parameter a = 5, parameter type b = int)            
+            #(parameter a = 5, parameter beta=125,parameter type b = int)            
             (input int a, output int b, input logic c);
             // ...
             endmodule""")
 
-        self.assertEqual("    const int a = 5;\n    typedef int b;", interface.constants())
+        self.assertEqual("    const int a    = 5;\n    const int beta = 125;\n    typedef int b;", interface.constants())
 
     def test_instance(self):
         from VHDLMode.sv_lang import SVInterface
@@ -227,12 +233,12 @@ class TestSVInterface(TestCase):
         interface.parse_block(input)
 
         expected = """module m #(
-    parameter int alpha = 5,
-    parameter type beta = int
+    parameter int  alpha = 5,
+    parameter type beta  = int
 ) (
-    input int a,
-    output int b,
-    input logic ccccccccccc
+    input  int   a,
+    output int   b,
+    input  logic ccccccccccc
 );
 endmodule // m"""
 
