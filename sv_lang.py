@@ -51,7 +51,7 @@ class SvPort:
             # remove the port direction and any trailing whitespace
             port_str = re.sub(dir_pattern, '', port_str)
         else:
-            data.mode = 'inout'
+            data.mode = ''
 
         # Then we check for unpacked dimensions
         up_pattern = r'(?P<prefix>.*?)\s*(?P<unpacked>\[[^\[]*\])$'
@@ -87,7 +87,7 @@ class SvPort:
             data.type = type_s.group('type')
             data.success = True
         else:
-            data.type = 'logic'
+            data.type = ''
 
             if len(port_str) >= 1:
                 data.name = port_str
@@ -105,8 +105,9 @@ class SvPort:
     @staticmethod
     def print_as_signal(data: common_lang.Port, name_indicator = ''):
         """Returns a string with the port formatted for a signal."""
+
         # Trailing semicolon provided by calling routine.
-        line = '{} {}{}{}'.format(data.type, name_indicator, data.name, data.unpacked_dims)
+        line = 'wire {} {}{}{}'.format(data.type, name_indicator, data.name, data.unpacked_dims)
         # print(line)
         return line
 

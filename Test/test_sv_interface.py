@@ -154,7 +154,7 @@ class TestSVInterface(TestCase):
 
         self.assertEqual('d',           interface.data.if_ports[3].name)
         self.assertEqual('input',       interface.data.if_ports[3].mode)
-        self.assertEqual('logic',       interface.data.if_ports[3].type)
+        self.assertEqual('',            interface.data.if_ports[3].type)
         self.assertEqual(True,          interface.data.if_ports[3].success)
 
     def test_signals(self):
@@ -171,10 +171,10 @@ class TestSVInterface(TestCase):
             endmodule""")
 
 
-        expected = """    int       a;
-    [4:0]     b;
-    reg [3:0] c;
-    logic     d;"""
+        expected = """    wire int       a;
+    wire [4:0]     b;
+    wire reg [3:0] c;
+    wire           d;"""
 
         self.assertEqual(expected, interface.signals())
 

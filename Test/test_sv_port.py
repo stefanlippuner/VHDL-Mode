@@ -12,8 +12,8 @@ class TestSVPort(TestCase):
 
         port = SvPort.parse_str('a')
         self.assertEqual('a', port.name)
-        self.assertEqual('logic', port.type)
-        self.assertEqual('inout', port.mode)
+        self.assertEqual('', port.type)
+        self.assertEqual('', port.mode)
         self.assertEqual('', port.unpacked_dims)
         self.assertTrue(port.success)
 
@@ -23,7 +23,7 @@ class TestSVPort(TestCase):
 
         port = SvPort.parse_str('input foo')
         self.assertEqual('foo', port.name)
-        self.assertEqual('logic', port.type)
+        self.assertEqual('', port.type)
         self.assertEqual('input', port.mode)
         self.assertEqual('', port.unpacked_dims)
 
@@ -55,7 +55,7 @@ class TestSVPort(TestCase):
         port = SvPort.parse_str('reg[range_hi:range_lo] y')
         self.assertEqual('y', port.name)
         self.assertEqual('reg [range_hi:range_lo]', port.type)
-        self.assertEqual('inout', port.mode)
+        self.assertEqual('', port.mode)
         self.assertEqual('', port.unpacked_dims)
         self.assertTrue(port.success)
 
@@ -93,7 +93,7 @@ class TestSVPort(TestCase):
         port = SvPort.parse_str('reg unpacked_array [7:0]')
         self.assertEqual('unpacked_array', port.name)
         self.assertEqual('reg', port.type)
-        self.assertEqual('inout', port.mode)
+        self.assertEqual('', port.mode)
         self.assertEqual('[7:0]', port.unpacked_dims)
         self.assertTrue(port.success)
 
@@ -121,7 +121,7 @@ class TestSVPort(TestCase):
     def test_print_as_signal(self):
         from VHDLMode.sv_lang import SvPort
         data = SvPort.parse_str('input int [7:0] y[range_hi:range_lo]')
-        self.assertEqual('int [7:0] y[range_hi:range_lo]', SvPort.print_as_signal(data))
+        self.assertEqual('wire int [7:0] y[range_hi:range_lo]', SvPort.print_as_signal(data))
 
     def test_print_as_portmap(self):
         from VHDLMode.sv_lang import SvPort
