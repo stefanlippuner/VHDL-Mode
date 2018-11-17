@@ -105,7 +105,7 @@ def remove_extra_space(lines):
             lines[i] = code + comment
 
 # ---------------------------------------------------------------
-def indent_vhdl(lines, initial=0, tab_size=4, use_spaces=True):
+def indent_vhdl(lines, initial=0, tab_size=4, use_spaces=False):
     """
     This method takes a list of lines of source code, that have
     been left justified, and attempts impose indentation rules

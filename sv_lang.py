@@ -593,7 +593,7 @@ class SVInterface:
 
 
 # ---------------------------------------------------------------
-def indent_sv(lines, initial=0, tab_size=4, use_spaces=True):
+def indent_sv(lines, initial=0, tab_size=4, use_spaces=False):
     """
     Implements SV indenting based on brackets only
     """
