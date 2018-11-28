@@ -452,7 +452,7 @@ class SVInterface:
         else:
             inst_name = self.data.name+'_1'
         lines = []
-        lines.append("{} {}".format(self.data.name, inst_name))
+        lines.append("{}".format(self.data.name))
         if self.data.if_generics:
             lines[-1] += " #("
             # Put the generics in here.  Join with , and a temp
@@ -471,6 +471,7 @@ class SVInterface:
             for gen_str in gen_strings:
                 lines.append(gen_str)
             lines.append(")")
+        lines[-1] += " {}".format(inst_name)
         if self.data.if_ports:
             lines[-1] += " ("
             # Put the ports in here.  Same as before.

@@ -191,25 +191,47 @@ class TestSVInterface(TestCase):
 
         self.assertEqual("\tconst int a    = 5;\n\tconst int beta = 125;\n\ttypedef int b;", interface.constants())
 
+    def test_instance_simple(self):
+        from VHDLMode.sv_lang import SVInterface
+        interface = SVInterface()
+
+        input_str = """module m         
+            (input int a, output int b, input logic ccccccccccc);
+            // ...
+            endmodule"""
+        input_a = input_str.split("\n")
+
+        interface.interface_start(input_a[0])
+        interface.interface_end(input_a[-1])
+        interface.parse_block(input_str)
+
+        expected = """\tm m_1 (
+\t\t.a           ( a           ),
+\t\t.b           ( b           ),
+\t\t.ccccccccccc ( ccccccccccc )
+\t);"""
+
+        self.assertEqual(expected, interface.instance())
+
     def test_instance(self):
         from VHDLMode.sv_lang import SVInterface
         interface = SVInterface()
 
-        input = """module m
+        input_str = """module m
             #(parameter alpha = 5, parameter type beta = int)            
             (input int a, output int b, input logic ccccccccccc);
             // ...
             endmodule"""
-        input_a = input.split("\n")
+        input_a = input_str.split("\n")
 
         interface.interface_start(input_a[0])
         interface.interface_end(input_a[-1])
-        interface.parse_block(input)
+        interface.parse_block(input_str)
 
-        expected = """\tm m_1 #(
+        expected = """\tm #(
 \t\t.alpha ( alpha ),
 \t\t.beta  ( beta  )
-\t) (
+\t) m_1 (
 \t\t.a           ( a           ),
 \t\t.b           ( b           ),
 \t\t.ccccccccccc ( ccccccccccc )
@@ -221,16 +243,16 @@ class TestSVInterface(TestCase):
         from VHDLMode.sv_lang import SVInterface
         interface = SVInterface()
 
-        input = """module m
+        input_str = """module m
             #(parameter alpha = 5, parameter type beta = int)            
             (input int a, output int b, input logic ccccccccccc);
             // ...
             endmodule"""
-        input_a = input.split("\n")
+        input_a = input_str.split("\n")
 
         interface.interface_start(input_a[0])
         interface.interface_end(input_a[-1])
-        interface.parse_block(input)
+        interface.parse_block(input_str)
 
         expected = """module m #(
 \tparameter int  alpha = 5,
